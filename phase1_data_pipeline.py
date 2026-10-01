@@ -22,6 +22,9 @@ TEST_LAT = 22.0797
 TEST_LON = 82.1409
 LOCATION_NAME = "Bilaspur, Chhattisgarh"
 
+# Your Google Cloud project registered for Earth Engine
+EE_PROJECT = "sylvan-eye"
+
 
 # ---------------------------------------------------------------------------
 # 1. Satellite Image Layer — Google Earth Engine (Sentinel-2)
@@ -34,7 +37,7 @@ def get_sentinel2_data(lat: float, lon: float):
     """
     import ee
 
-    ee.Initialize()  # uses credentials cached by `earthengine authenticate`
+    ee.Initialize(project=EE_PROJECT)  # credentials cached by `earthengine authenticate`
 
     point = ee.Geometry.Point([lon, lat])
 
@@ -66,34 +69,77 @@ def get_sentinel2_data(lat: float, lon: float):
 
 
 # ---------------------------------------------------------------------------
-# 2a. Environmental Data Layer — Soil (SoilGrids)
+# 2a. Environmental Data Layer — Soil (via Earth Engine)
 # ---------------------------------------------------------------------------
-def get_soilgrids_data(lat: float, lon: float):
-    """
-    SoilGrids REST API — no API key required.
-    Docs: https://www.isric.org/explore/soilgrids/faq-soilgrids
-    """
-    url = "https://rest.isric.org/soilgrids/v2.0/properties/query"
-    params = {
-        "lon": lon,
-        "lat": lat,
-        "property": ["phh2o", "soc", "sand", "clay"],
-        "depth": "0-5cm",
-        "value": "mean",
-    }
-    resp = requests.get(url, params=params, timeout=30)
-    resp.raise_for_status()
-    data = resp.json()
+# The SoilGrids REST API is paused by ISRIC. We read soil data through Earth
+# Engine instead, trying two sources in order:
+#   1. SoilGrids 2.0 community assets (projects/soilgrids-isric/...)
+#   2. OpenLandMap (official Earth Engine catalog) as a fallback
+# Each entry: property -> (asset id, band, multiplier to real units, unit)
+SOIL_SOURCES = [
+    (
+        "SoilGrids 2.0 (Earth Engine)",
+        {
+            "ph": ("projects/soilgrids-isric/phh2o_mean", 0, 0.1, "pH"),
+            "organic_carbon": ("projects/soilgrids-isric/soc_mean", 0, 0.1, "g/kg"),
+            "clay": ("projects/soilgrids-isric/clay_mean", 0, 0.1, "%"),
+            "sand": ("projects/soilgrids-isric/sand_mean", 0, 0.1, "%"),
+        },
+    ),
+    (
+        "OpenLandMap (Earth Engine)",
+        {
+            "ph": ("OpenLandMap/SOL/SOL_PH-H2O_USDA-4C1A2A_M/v02", "b0", 0.1, "pH"),
+            "organic_carbon": (
+                "OpenLandMap/SOL/SOL_ORGANIC-CARBON_USDA-6A1C_M/v02", "b0", 5, "g/kg",
+            ),
+            "clay": ("OpenLandMap/SOL/SOL_CLAY-WFRACTION_USDA-3A1A1A_M/v02", "b0", 1, "%"),
+            "sand": ("OpenLandMap/SOL/SOL_SAND-WFRACTION_USDA-3A1A1A_M/v02", "b0", 1, "%"),
+        },
+    ),
+]
 
-    layers = data.get("properties", {}).get("layers", [])
+
+def _sample_soil_source(properties: dict, point):
+    import ee
+
     parsed = {}
-    for layer in layers:
-        name = layer["name"]
-        depths = layer.get("depths", [])
-        if depths:
-            parsed[name] = depths[0]["values"].get("mean")
+    for name, (asset, band, multiplier, unit) in properties.items():
+        image = ee.Image(asset).select(band)
+        raw = image.reduceRegion(
+            reducer=ee.Reducer.mean(),
+            geometry=point.buffer(500),
+            scale=250,
+            maxPixels=1e6,
+        ).getInfo()
+        value = next(iter(raw.values()), None)
+        parsed[name] = {
+            "value": round(value * multiplier, 2) if value is not None else None,
+            "unit": unit,
+        }
+    return parsed
 
-    return {"source": "SoilGrids", "properties_0_5cm": parsed}
+
+def get_soil_data(lat: float, lon: float):
+    """Surface-layer (0 cm) soil properties: pH, organic carbon, clay, sand."""
+    import ee
+
+    ee.Initialize(project=EE_PROJECT)
+    point = ee.Geometry.Point([lon, lat])
+
+    tried = []
+    for source_name, properties in SOIL_SOURCES:
+        try:
+            parsed = _sample_soil_source(properties, point)
+        except Exception as e:
+            tried.append(f"{source_name}: error {e}")
+            continue
+        if any(v["value"] is not None for v in parsed.values()):
+            return {"source": source_name, "surface_soil": parsed}
+        tried.append(f"{source_name}: all values empty")
+
+    # Fail loudly instead of reporting success on empty data
+    raise RuntimeError("No soil source returned values. " + " | ".join(tried))
 
 
 # ---------------------------------------------------------------------------
@@ -155,7 +201,7 @@ def main():
 
     fetchers = [
         ("Sentinel-2 (Earth Engine)", lambda: get_sentinel2_data(TEST_LAT, TEST_LON)),
-        ("SoilGrids", lambda: get_soilgrids_data(TEST_LAT, TEST_LON)),
+        ("Soil (Earth Engine)", lambda: get_soil_data(TEST_LAT, TEST_LON)),
         ("Open-Meteo", lambda: get_openmeteo_data(TEST_LAT, TEST_LON)),
         ("OpenAQ", lambda: get_openaq_data(TEST_LAT, TEST_LON)),
     ]
