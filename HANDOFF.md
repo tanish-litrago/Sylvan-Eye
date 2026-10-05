@@ -2,7 +2,7 @@
 
 Purpose: a running record so any new session (or Claude instance) can pick up the project without re-asking. Update this file at the end of each phase. **Never put API keys or credentials in this file.**
 
-Last updated: 2026-10-02 (end of Phase 2, start of Phase 3)
+Last updated: 2026-10-04 (Phase 3 at 26 of 32 species; Phase 4 matcher works live on Bilaspur)
 
 ---
 
@@ -37,7 +37,9 @@ Future: plant-care advice, multi-region comparison, larger-scale planning.
 | Soil | Via Earth Engine (SoilGrids REST API is paused by ISRIC). Tries SoilGrids community assets first, falls back to OpenLandMap |
 | Climate | Open-Meteo (free, no key) |
 | Air quality | OpenAQ v3 (free key in env var `OPENAQ_API_KEY`) |
-| Plant DB | Flat JSON/CSV, 20-30 plants for v1 |
+| Plant DB | Flat CSV (`plants.csv`), India-wide mix of trees, every value sourced by URL. Columns `*_opt_*` = the source's typical/"grows best" range, `*_abs_*` = bracketed extremes (optional). Blank cell = not found, never guessed |
+| Plant data sources | FAO ECOCROP datasheets where available; otherwise World Agroforestry (Agroforestree Database) species sheets; one USDA Forest Service document (neem); one set of secondary sources (mahua, flagged weak) |
+| Using other LLMs to fill rows | Allowed (user tried Gemini), but every row must carry a source URL and be checked against that page before it goes in. Gemini's 12 rows were checked this way |
 | Matching | Simple threshold rules first; user also wants ML in this layer eventually |
 | LLM | Local inference, swappable, off by default |
 | Imagery summary method | Median composite for NDVI; **per-pixel 90th percentile across images for water (NDWI)**; per-pixel p10/p90 for seasonal NDVI range |
@@ -49,8 +51,8 @@ Future: plant-care advice, multi-region comparison, larger-scale planning.
 |---|---|---|
 | 1 | Data pipeline: all four sources fetch for one hardcoded location | **Done** (4/4) |
 | 2 | Terrain/vegetation extraction from satellite image → structured data | **Done** (with documented limits, see section 8) |
-| 3 | Plant requirement database (20-30 plants) | **Next** |
-| 4 | Rule-based matching layer | Not started |
+| 3 | Plant requirement database (20-30 plants) | **Mostly done**: 26 of 32 species filled, 6 blank (see section 8) |
+| 4 | Rule-based matching layer | **Done** (`phase4_matcher.py`); offline demo and live run both work on Bilaspur city centre. Still to do: live runs on other sites and a local-knowledge check |
 | 5 | LLM explanation layer (plugin) | Not started |
 | 6 | Integration + basic UI | Not started |
 | 7 | Testing across multiple regions | Not started |
@@ -59,6 +61,10 @@ Future: plant-care advice, multi-region comparison, larger-scale planning.
 
 - `phase1_data_pipeline.py` — four fetchers + a runner that reports X/4. Functions: `get_sentinel2_data`, `get_soil_data`, `get_openmeteo_data`, `get_openaq_data`.
 - `phase2_terrain_extraction.py` — `get_terrain_data(lat, lon, radius_m=1000)` returns NDVI, NDWI (p90), seasonal NDVI (p10, p90, range, big-swing fraction), land-cover fractions, elevation, slope. Tunable thresholds sit at the top of the file: `NDWI_WATER=0.0`, `NDVI_SPARSE=0.2`, `NDVI_DENSE=0.5`, `SEASONAL_SWING=0.25`.
+- `plants.csv` — 32 species rows. Columns: common_name, scientific_name, type, leaf_habit, ph/rain/temp each with `_opt_min,_opt_max,_abs_min,_abs_max`, soil_texture (light/medium/heavy/organic, comma separated), source, notes. Rainfall in mm/year, temperature in degrees C. Status: 14 rows have pH, rain and temp typical ranges; 12 are partly filled (mostly missing pH); 6 are blank. Source mix: ECOCROP 8, World Agroforestry 16, USDA Forest Service 1 (neem), secondary sources 1 (mahua).
+- `validate_plants.py` — checks `plants.csv` (typical pair filled together, extremes contain the typical range, pH 0-14, plausible values, texture words, source present, no duplicates). Run `python validate_plants.py plants.csv`; currently 0 problems. It cannot catch a number that is plausible but wrong.
+- `phase4_inputs.py` — `get_climate_normals` (long-term climate from Open-Meteo archive) and `classify_soil_texture` (clay/sand to light/medium/heavy). Tunable constants at the top.
+- `phase4_matcher.py` — `match_plants(env)` and `check_eligibility(terrain)`. Per plant and factor (rainfall, temperature, pH, texture, elevation): good / within_limits / marginal / poor / excluded, or skipped when data is missing (missing counts as neutral 0.5 in the score and lowers confidence). Prints a ranked list with a reason for every plant, plus the ruled-out list and the plants with no data. `python phase4_matcher.py --demo` runs offline on Bilaspur's measured values; without `--demo` it runs the live terrain, soil and climate fetches. The eligibility gate blocks when water/wet surface is 50% or more, and warns for built-up share, cropland-like seasonality and never-green land.
 - `requirements.txt` — `requests`, `earthengine-api`.
 - `.gitignore` — must include `venv/`, `.env`, `__pycache__/`.
 
@@ -106,6 +112,23 @@ Notes on the points:
 - SoilGrids community assets returned masked (None) values at the test point even over a 500 m buffer; cause unknown. OpenLandMap fallback works but is a 2018 dataset at 250 m; record the source name in any output.
 - OpenLandMap sand and organic-carbon asset IDs were written from memory, not verified against the catalog (pH and clay were verified). They returned plausible values.
 
+**Plant database**
+- **Six species are blank** because the page could not be opened or found: banyan (*Ficus benghalensis*), bamboo (*Dendrocalamus strictus*), amla (*Phyllanthus emblica*), semal (*Bombax ceiba*), bijasal (*Pterocarpus marsupium*), chir pine (*Pinus roxburghii*). Do not fill from memory; get the datasheet text or leave blank.
+- **pH is the weakest column.** World Agroforestry sheets usually describe pH in words, so many rows have no pH. The matcher must skip a missing factor and lower confidence, never count it as a pass.
+- **Hill species need an elevation rule.** Deodar's sheet gives altitude 1200-3500 m; it should not be recommended on plains such as Bilaspur (~270 m). Elevation is already returned by Phase 2. Altitude limits are in the `notes` column, not yet in a numeric column; add `alt_min`/`alt_max` columns if the matcher needs them.
+- **Sources disagree on what "range" means.** Khejri: ECOCROP optimal rain 400-800 mm vs World Agroforestry natural-range 120-250 mm. ECOCROP temperature definitions are not consistent across species (salai optimal 33-42 looks like a hot-season value). Decide what annual climate statistic to compare against (annual mean temperature and annual rainfall are the working choice).
+- **Ecologically contested species.** ECOCROP flags babul (*Vachellia nilotica*) and jamun (*Syzygium cumini*) as able to become weeds. Eucalyptus, subabul and *Acacia auriculiformis* were deliberately left out of the list. App output should surface such flags.
+- **Mahua row is weak**: only secondary sources, which disagree on rainfall (550-1500 vs 750-1875 mm). Verify before relying on it.
+- **Interpretation choices Claude made**: Ziziphus temperature (sheet says '7-13 to 37-48'; inner 13/37 used as typical, outer 7/48 as extremes); bael temperature -6 to 48 is an extreme range, not a narrow optimum; texture words were derived from soil descriptions in the sheets (e.g. 'sandy loam' = medium,light). Gemini's 'heavy' for siris was changed to 'medium'.
+- **Two rows were added that were not on the original list**: salai (*Boswellia serrata*) and khair (*Acacia catechu*), both Indian dry-forest natives found in ECOCROP.
+
+**Matcher (Phase 4)**
+- **It filters better than it ranks.** On Bilaspur's values 14 plants tie at 0.88 because the data is too coarse to separate them (a marginal fit and a missing value both score 0.5). A plant with full data and nothing wrong (moringa, 0.85) can rank below plants that simply have a missing factor, and very wide source ranges (bael temperature -6 to 48, rosewood 8 to 44) pass everything, so temperature does not discriminate. Consider presenting tiers (strong fit / possible / ruled out) instead of a numeric rank. Treat the ruled-out list and the warnings as the strongest output.
+- **Only 13 of 32 plants have altitude limits.** A plant with no altitude data is not excluded at high elevation; on a 2000 m test site, mango, sissoo and salai still ranked. Add altitude for the rest.
+- **Exclusions by pH rest on weak input.** pH comes from OpenLandMap (2018, 250 m, modelled). On Bilaspur it ruled out salai and khair (stated maximums 7.4 and 7). Confirm with a soil test.
+- **Gate thresholds come from four sites** and are unvalidated. On those four it gave: city centre built-up warning; park none; Khapri farmland cropland warning; ash dyke blocked plus never-green warning.
+- Live run on Bilaspur city centre gave the same environment as the demo (1520 mm, 26.4 C, pH 7.58, medium, 269.4 m) plus the built-up warning (45% bare or built-up). Live runs on the other test sites are still to do: `python phase4_matcher.py LAT LON`.
+
 **Climate and air quality**
 - Open-Meteo currently returns only current weather and a 7-day forecast. Plant matching needs long-term climate (annual rainfall, temperature range, dry-season length): switch to the historical archive endpoint before Phase 4.
 - OpenAQ returns station metadata, not measurements. Air quality is the weakest input for plant suitability; treat as optional context, not a matching rule.
@@ -129,7 +152,9 @@ Notes on the points:
 
 ## 11. Next steps
 
-1. **Phase 3: plant requirement database.** Define fields (pH range, annual rainfall range, temperature range, soil texture tolerance, water need, drought/waterlogging tolerance, sun, deciduous/evergreen) and fill 20-30 well-documented plants/trees relevant to central India / Chhattisgarh first. Record the source for every plant's values.
-2. Switch Open-Meteo to historical climate averages (needed by Phase 4).
-3. Decide how the matching layer should treat low-confidence or excluded land (water/wet surface, built-up, active cropland, ash/industrial) rather than recommending plants there.
-4. Later/optional: find a true degraded natural-land test site; monsoon cloud masking; WorldCover or JRC water cross-check.
+1. ~~Run the matcher live~~ done for Bilaspur city centre. Next: run it on the park, Khapri farmland and ash dyke coordinates (`python phase4_matcher.py LAT LON`) and check the gate and exclusions.
+2. Compare matcher output against local knowledge (what actually grows well around Bilaspur) to see whether the exclusions and warnings make sense. Try the other test sites (park, Khapri, ash dyke) and one rural or degraded site.
+3. Fill the 6 blank plant rows and add altitude limits for the remaining species; add pH where a source has numbers.
+4. **Phase 5: LLM explanation layer**, as a swappable plugin, off by default. It receives the matcher's structured output (verdicts, reasons, flags, warnings) and may only explain it, never add or change facts.
+5. **Phase 6: integration and a basic UI** (coordinate form, results display with the warnings and the ruled-out list).
+6. Later/optional: find a true degraded natural-land test site; monsoon cloud masking; WorldCover or JRC water cross-check; cross-check reanalysis rainfall against rain-gauge data.
