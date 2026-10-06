@@ -2,7 +2,7 @@
 
 Purpose: a running record so any new session (or Claude instance) can pick up the project without re-asking. Update this file at the end of each phase. **Never put API keys or credentials in this file.**
 
-Last updated: 2026-10-04 (Phase 3 at 26 of 32 species; Phase 4 matcher works live on Bilaspur)
+Last updated: 2026-10-05 (Phase 3 at 26 of 32 species; Phase 4 matcher works live on four sites, tolerances adjusted; Phase 5 explainer run with gemma4:e4b and qwen2.5:7b-instruct)
 
 ---
 
@@ -43,6 +43,7 @@ Future: plant-care advice, multi-region comparison, larger-scale planning.
 | Matching | Simple threshold rules first; user also wants ML in this layer eventually |
 | LLM | Local inference, swappable, off by default |
 | Imagery summary method | Median composite for NDVI; **per-pixel 90th percentile across images for water (NDWI)**; per-pixel p10/p90 for seasonal NDVI range |
+| Matcher tolerances (2026-10-06, chosen by Claude on the user's delegation) | pH within 0.3 of a stated limit = marginal, not excluded (pH is modelled); texture one class away (light/medium/heavy) = marginal, two away = poor; "poor" scores 0.35 (was 0.25, a judgement call); default terrain radius 400 m (was 1000); water or wet surface 20% to 49% = warning, 50% or more = block |
 | Water class name | Renamed to `water_or_wet_surface` because the signal cannot tell small ponds from seasonally damp bare ground |
 
 ## 5. Build phases and status
@@ -53,7 +54,7 @@ Future: plant-care advice, multi-region comparison, larger-scale planning.
 | 2 | Terrain/vegetation extraction from satellite image → structured data | **Done** (with documented limits, see section 8) |
 | 3 | Plant requirement database (20-30 plants) | **Mostly done**: 26 of 32 species filled, 6 blank (see section 8) |
 | 4 | Rule-based matching layer | **Done** (`phase4_matcher.py`); offline demo and live run both work on Bilaspur city centre. Still to do: live runs on other sites and a local-knowledge check |
-| 5 | LLM explanation layer (plugin) | Not started |
+| 5 | LLM explanation layer (plugin) | **Written, run with both local models on demo and live sites** (`phase5_explainer.py`); guard extended twice after reviewing real outputs; rerun with the updated guard still to do |
 | 6 | Integration + basic UI | Not started |
 | 7 | Testing across multiple regions | Not started |
 
@@ -64,7 +65,8 @@ Future: plant-care advice, multi-region comparison, larger-scale planning.
 - `plants.csv` — 32 species rows. Columns: common_name, scientific_name, type, leaf_habit, ph/rain/temp each with `_opt_min,_opt_max,_abs_min,_abs_max`, soil_texture (light/medium/heavy/organic, comma separated), source, notes. Rainfall in mm/year, temperature in degrees C. Status: 14 rows have pH, rain and temp typical ranges; 12 are partly filled (mostly missing pH); 6 are blank. Source mix: ECOCROP 8, World Agroforestry 16, USDA Forest Service 1 (neem), secondary sources 1 (mahua).
 - `validate_plants.py` — checks `plants.csv` (typical pair filled together, extremes contain the typical range, pH 0-14, plausible values, texture words, source present, no duplicates). Run `python validate_plants.py plants.csv`; currently 0 problems. It cannot catch a number that is plausible but wrong.
 - `phase4_inputs.py` — `get_climate_normals` (long-term climate from Open-Meteo archive) and `classify_soil_texture` (clay/sand to light/medium/heavy). Tunable constants at the top.
-- `phase4_matcher.py` — `match_plants(env)` and `check_eligibility(terrain)`. Per plant and factor (rainfall, temperature, pH, texture, elevation): good / within_limits / marginal / poor / excluded, or skipped when data is missing (missing counts as neutral 0.5 in the score and lowers confidence). Prints a ranked list with a reason for every plant, plus the ruled-out list and the plants with no data. `python phase4_matcher.py --demo` runs offline on Bilaspur's measured values; without `--demo` it runs the live terrain, soil and climate fetches. The eligibility gate blocks when water/wet surface is 50% or more, and warns for built-up share, cropland-like seasonality and never-green land.
+- `phase4_matcher.py` — `match_plants(env)` and `check_eligibility(terrain)`. Per plant and factor (rainfall, temperature, pH, texture, elevation): good / within_limits / marginal / poor / excluded, or skipped when data is missing (missing counts as neutral 0.5 in the score and lowers confidence). Prints a ranked list with a reason for every plant, plus the ruled-out list and the plants with no data. `python phase4_matcher.py --demo` runs offline on Bilaspur's measured values; without `--demo` it runs the live terrain, soil and climate fetches. The eligibility gate blocks when water/wet surface is 50% or more, and warns for water/wet 20% or more, built-up share, cropland-like seasonality and never-green land. `--brief` prints a short report (env line, terrain summary, warnings, top 10 plants with only their non-good checks, ruled out). Live reports print a one-line terrain summary (radius, land-cover shares, NDVI, swing). pH margin 0.3 and texture adjacency are constants at the top of the file.
+- `phase5_explainer.py` — explanation layer, OFF by default. `build_facts()` packs the matcher output into a fact sheet; `template_explanation()` gives deterministic plain English (the default output, no LLM); `OllamaExplainer` (default model `gemma4:e4b`, `--model` to change) writes prose from the fact sheet via the local Ollama API. Its answer goes through `verify_explanation()`: any plant from plants.csv that is not in the fact sheet, or any number (decimal or 2+ digits) that is not anywhere in the fact sheet, rejects it; one retry with the reason, then it falls back to the template. A blocked location (water/wet surface) never calls the LLM. Run: `python phase5_explainer.py --demo [--llm]` or `python phase5_explainer.py LAT LON [--llm] [--model NAME]`.
 - `requirements.txt` — `requests`, `earthengine-api`.
 - `.gitignore` — must include `venv/`, `.env`, `__pycache__/`.
 
@@ -127,7 +129,19 @@ Notes on the points:
 - **Only 13 of 32 plants have altitude limits.** A plant with no altitude data is not excluded at high elevation; on a 2000 m test site, mango, sissoo and salai still ranked. Add altitude for the rest.
 - **Exclusions by pH rest on weak input.** pH comes from OpenLandMap (2018, 250 m, modelled). On Bilaspur it ruled out salai and khair (stated maximums 7.4 and 7). Confirm with a soil test.
 - **Gate thresholds come from four sites** and are unvalidated. On those four it gave: city centre built-up warning; park none; Khapri farmland cropland warning; ash dyke blocked plus never-green warning.
+- Both `phase4_matcher.py` and `phase5_explainer.py` accept `--radius METERS` (default 400) for the terrain circle. The ash-dyke test in Phase 2 used 400 m. At 1000 m the circle includes farmland and a lake outside the dyke: the live run at 1000 m was NOT blocked (42% bare/built warning only, 22-plant list). Default is now 400 m. Gate thresholds were calibrated on 1000 m circles for city/park/farmland and are unvalidated at 400 m; rerun all sites.
 - Live run on Bilaspur city centre gave the same environment as the demo (1520 mm, 26.4 C, pH 7.58, medium, 269.4 m) plus the built-up warning (45% bare or built-up). Live runs on the other test sites are still to do: `python phase4_matcher.py LAT LON`.
+
+**Explainer (Phase 5)**
+- **Real models were run** on the demo values and on three live sites (`gemma4:e4b` on Khapri and the park, `qwen2.5:7b-instruct` on Khapri; the ash dyke correctly skipped the LLM). Findings:
+  - `gemma4:e4b` was faithful on every plant check but wordy and clumsy ("weed source"). Once its Khapri answer was **cut off mid-sentence** (ended at "Moringa has a score", missing the ruled-out and no-data sections) and the first guard accepted it. Likely cause: Ollama's default context window is smaller than the prompt plus answer.
+  - `qwen2.5:7b-instruct` read better but made real errors on Khapri: said Babul meets "most conditions" without mentioning its marginal rainfall; said Teak lacks altitude data (it has it) and Amaltas lacks pH data (it has pH, lacks texture); dropped Moringa; used bold markdown despite the prompt. Earlier on the demo it claimed Bael fits on texture (no data) and called the weed flag "invasive".
+  - Gemma's park answer was accurate and complete. The template (no LLM) is correct in all cases.
+- **Guard now checks:** plants not in the fact sheet; numbers (2+ digits or decimals) not anywhere in the fact sheet; unsourced words (`UNSOURCED_TERMS`); per plant: talking about a skipped factor without saying no data, saying no data for a factor that WAS checked, and dropping a marginal/poor check; completeness (every shortlisted, ruled-out and no-data plant must be named); and a cut-off flag from Ollama's `done_reason`. Replaying all real outputs: every good answer accepted, every bad one rejected for the specific errors above. A rejection triggers one retry, then the deterministic template.
+- **Ollama call changes:** `num_ctx` 8192, `num_predict` 2048, compact JSON in the prompt, bold markers stripped. If answers still get cut off, raise `num_ctx` (8 GB VRAM should handle it for these models).
+- **Limits that remain:** a real number can still sit on the wrong claim; the checks are keyword heuristics tied to sentence structure and will miss new kinds of drift or paraphrase; vague wording ("most factors") passes. The deterministic template is the trusted output; LLM text is labelled as LLM-written.
+- Prompt gained two rules from these runs: a skipped check means no data, and use the flags' own wording.
+- Not yet seen: the retry path against a real model. The new guard and prompt have only been tested by replaying saved outputs; rerun `--llm` on Khapri and the park with the updated file.
 
 **Climate and air quality**
 - Open-Meteo currently returns only current weather and a 7-day forecast. Plant matching needs long-term climate (annual rainfall, temperature range, dry-season length): switch to the historical archive endpoint before Phase 4.
@@ -152,9 +166,13 @@ Notes on the points:
 
 ## 11. Next steps
 
+0. **Gate calibration.** The cropland rule (big-swing share 40% or more with dry NDVI under 0.2) fired on Khapri at 1000 m but not at 400 m, and the ash dyke slips through at 1000 m. Thresholds come from a handful of sites; do not retune on one site. Collect 3-4 more cropland sites and 2-3 degraded or barren natural sites (gullies, quarry, rocky scrub), run each at 400 m and 1000 m, then set thresholds. Consider evaluating the gate on both radii (small circle for the water block, larger circle for land-use context).
+
 1. ~~Run the matcher live~~ done for Bilaspur city centre. Next: run it on the park, Khapri farmland and ash dyke coordinates (`python phase4_matcher.py LAT LON`) and check the gate and exclusions.
 2. Compare matcher output against local knowledge (what actually grows well around Bilaspur) to see whether the exclusions and warnings make sense. Try the other test sites (park, Khapri, ash dyke) and one rural or degraded site.
 3. Fill the 6 blank plant rows and add altitude limits for the remaining species; add pH where a source has numbers.
-4. **Phase 5: LLM explanation layer**, as a swappable plugin, off by default. It receives the matcher's structured output (verdicts, reasons, flags, warnings) and may only explain it, never add or change facts.
+4. **Phase 5: rerun `--llm`** on Khapri and the park with the updated guard (check for cut-offs and rejections); decide whether to keep the LLM at all or use it only for a short overview paragraph with the per-plant lines left to the template.
+4a. **Live results after the matcher fixes (2026-10-06, default 400 m radius):** city centre: built-up warning (44% bare/built); park: no warnings (0% bare/built, 94% big swing, NDVI dry 0.29); Khapri farmland: NO warning (swing only 26%, bare/built 3%, 97% sparse/crops, NDVI dry 0.188) although it is farmland, so the cropland rule missed it; ash dyke 400 m: blocked (60% water/wet); ash dyke 1000 m: not blocked (water/wet 17% is below the 20% warning level, peak NDVI 0.287 so no never-green warning; only a 42% built-up warning and a 23-plant list). LLM tails (gemma4:e4b) on Khapri and the park finished properly, were accepted first try and matched the plain report for the plants visible.
+4b. **Matcher fixes made 2026-10-06** (see Decisions): pH margin, texture adjacency, milder poor, water warning, 400 m default radius, terrain summary line. Offline comparison on the four sites' saved environments: salai no longer excluded on pH 7.46-7.58 (now marginal), mango and sissoo no longer penalised for heavy soil (0.81 to 0.88), neem 0.69 to 0.71. Still to do: rerun the five live commands (the gate was not re-tested live at 400 m for city, park and Khapri).
 5. **Phase 6: integration and a basic UI** (coordinate form, results display with the warnings and the ruled-out list).
 6. Later/optional: find a true degraded natural-land test site; monsoon cloud masking; WorldCover or JRC water cross-check; cross-check reanalysis rainfall against rain-gauge data.
