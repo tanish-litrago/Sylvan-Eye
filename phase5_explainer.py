@@ -20,6 +20,7 @@ Run:
     python phase5_explainer.py LAT LON --llm          live location, LLM text
     add  --model qwen2.5:7b-instruct  to pick another Ollama model
     add  --radius 1000  to size the terrain circle in metres (default 400)
+    add  --refresh / --no-cache  to recompute or skip the measurement cache (see storage.py)
 """
 
 import csv
@@ -29,7 +30,8 @@ import sys
 
 import requests
 
-from phase4_matcher import DEMO_ENV, PLANTS_CSV, check_eligibility, match_plants, parse_radius, run_live
+from phase4_matcher import (DEMO_ENV, PLANTS_CSV, cache_flags, check_eligibility, match_plants,
+                            parse_radius, print_cache_line, run_live)
 
 OLLAMA_URL = "http://localhost:11434/api/chat"
 OLLAMA_MODEL = "gemma4:e4b"   # change here or pass --model
@@ -373,7 +375,9 @@ def main():
     else:
         lat, lon = (float(args[0]), float(args[1])) if len(args) >= 2 else (22.0797, 82.1409)
         print(f"Location: {lat}, {lon} (terrain radius {radius:g} m)\n")
-        env, terrain = run_live(lat, lon, radius)
+        env, terrain = run_live(lat, lon, radius, *cache_flags(argv))
+        print_cache_line()
+        print()
 
     ranked, excluded, blank = match_plants(env)
     facts = build_facts(env, terrain, ranked, excluded, blank)

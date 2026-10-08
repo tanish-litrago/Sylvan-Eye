@@ -25,6 +25,9 @@ LOCATION_NAME = "Bilaspur, Chhattisgarh"
 # Your Google Cloud project registered for Earth Engine
 EE_PROJECT = "sylvan-eye"
 
+# Cache version of get_soil_data()'s output. Bump it whenever the returned data changes.
+CACHE_VERSION = 1
+
 
 # ---------------------------------------------------------------------------
 # 1. Satellite Image Layer — Google Earth Engine (Sentinel-2)

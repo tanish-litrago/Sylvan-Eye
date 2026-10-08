@@ -30,6 +30,9 @@ Run:
     python phase4_matcher.py LAT LON       live, any location, e.g. python phase4_matcher.py 22.0336 82.2651
     add  --radius 1000  to size the terrain circle in metres (default 400)
     add  --brief        for a short report (10 plants, only the non-good checks)
+    add  --refresh      recompute the measurements and overwrite the cache
+    add  --no-cache     do not read or write the cache
+    cache backend: SYLVAN_STORE=sqlite (default) or postgres, see storage.py
 """
 
 import csv
@@ -44,13 +47,21 @@ PH_MARGIN = 0.3        # pH this close beyond a stated limit counts as marginal,
 TEXTURE_ORDER = ["light", "medium", "heavy"]
 DEFAULT_RADIUS = 400   # metres of terrain circle around the pin
 
+# Cache lifetimes (seconds). The cache VERSION of each measurement comes from the module that
+# produces it (its CACHE_VERSION constant; 1 if the module has none), so old cached data from
+# older code is never reused after that code changes.
+TERRAIN_TTL = 30 * 24 * 3600       # imagery changes with the seasons and years
+SOIL_TTL = 365 * 24 * 3600         # a 2018 model; effectively static
+CLIMATE_TTL = 365 * 24 * 3600      # a fixed 10-year average
+CACHE_LOG = []                     # filled by run_live: what was a hit or a miss
+
 # ---------------------------------------------------------------------------
 # Eligibility gate thresholds. Starting guesses from only four test sites.
 # ---------------------------------------------------------------------------
 GATE_WATER_BLOCK = 0.5      # share water/wet surface at or above this -> do not recommend
 GATE_WATER_WARN = 0.2       # share at or above this (but below the block level) -> warn
 GATE_BUILT_WARN = 0.4       # share bare-or-built at or above this -> warn
-GATE_SWING_WARN = 0.4       # big seasonal NDVI swing share ...
+GATE_SWING_WARN = 0.4       # big seasonal NDVI swing share, in at least 2 years ...
 GATE_DRY_FLOOR_MAX = 0.2    # ... with a dry-season NDVI floor below this -> looks like cropland
 GATE_NEVER_GREEN_PEAK = 0.15  # peak NDVI below this -> never greens up
 
@@ -86,9 +97,19 @@ def check_eligibility(terrain: dict):
             f"WARNING: {cover['bare_or_built']:.0%} is bare or built-up and the satellite "
             f"signal cannot tell these apart. If it is built-up, nothing can be planted."
         )
-    if season["big_swing_fraction"] >= GATE_SWING_WARN and season["ndvi_dry_p10_mean"] < GATE_DRY_FLOOR_MAX:
+    by_year = season.get("big_swing_by_year") or {}
+    if by_year:
+        # A swing must RECUR (in at least two years, or the only year available): a spike in one
+        # year can be a haze or lagoon artifact (the ash dyke had 94% in 2023, 28-29% after).
+        over = sorted(str(y) for y, f in by_year.items() if f >= GATE_SWING_WARN)
+        swing_flag = len(over) >= min(2, len(by_year))
+        detail = f"in {len(over)} of {len(by_year)} years ({', '.join(over)})"
+    else:  # older terrain data without the by-year numbers
+        swing_flag = season["big_swing_fraction"] >= GATE_SWING_WARN
+        detail = "through the year"
+    if swing_flag and season["ndvi_dry_p10_mean"] < GATE_DRY_FLOOR_MAX:
         messages.append(
-            "WARNING: vegetation swings between bare and green through the year, which "
+            f"WARNING: vegetation swings strongly between bare and green {detail}, which "
             "looks like active cropland (unvalidated rule). Check whether the land is in use."
         )
     if season["ndvi_peak_p90_mean"] < GATE_NEVER_GREEN_PEAK:
@@ -235,7 +256,9 @@ def terrain_summary_line(terrain):
             f"sparse vegetation or crops {cover['sparse_vegetation_or_crops']:.0%}, "
             f"dense vegetation {cover['dense_vegetation']:.0%}; "
             f"NDVI dry {season['ndvi_dry_p10_mean']} to peak {season['ndvi_peak_p90_mean']}, "
-            f"big seasonal swing {season['big_swing_fraction']:.0%}")
+            f"big seasonal swing {season['big_swing_fraction']:.0%}"
+            + (" (by year: " + ", ".join(f"{y} {f:.0%}" for y, f in sorted(season["big_swing_by_year"].items())) + ")"
+               if season.get("big_swing_by_year") else ""))
 
 
 def print_brief(env, terrain, ranked, excluded, blank, top=10):
@@ -312,14 +335,42 @@ DEMO_ENV = {  # measured for Bilaspur in earlier phases
 }
 
 
-def run_live(lat, lon, radius_m=DEFAULT_RADIUS):
-    from phase2_terrain_extraction import get_terrain_data
-    from phase1_data_pipeline import get_soil_data
-    from phase4_inputs import get_climate_normals, classify_soil_texture
+def run_live(lat, lon, radius_m=DEFAULT_RADIUS, use_cache=True, refresh=False):
+    """
+    Fetch terrain, soil and climate for a point and build the matcher's environment.
+    Raw measurements are cached (see storage.py); the matcher's verdicts never are.
+    use_cache=False skips the cache entirely; refresh=True recomputes and overwrites it.
+    """
+    import phase1_data_pipeline, phase2_terrain_extraction, phase4_inputs
+    from phase4_inputs import START_YEAR, END_YEAR, classify_soil_texture
+    from storage import StoreError, cached, get_store, make_key
+    terrain_version = getattr(phase2_terrain_extraction, "CACHE_VERSION", 1)
+    soil_version = getattr(phase1_data_pipeline, "CACHE_VERSION", 1)
+    climate_version = getattr(phase4_inputs, "CACHE_VERSION", 1)
 
-    terrain = get_terrain_data(lat, lon, radius_m=radius_m)
-    soil = get_soil_data(lat, lon)["surface_soil"]
-    climate = get_climate_normals(lat, lon)
+    store = None
+    if use_cache:
+        try:
+            store = get_store()
+        except StoreError as e:
+            print(f"[cache off: {e}]")
+    CACHE_LOG.clear()
+    CACHE_LOG.append(("store", store.name if store else "off"))
+
+    terrain, status = cached(
+        store, make_key("terrain", lat, lon, radius_m, terrain_version), TERRAIN_TTL,
+        lambda: phase2_terrain_extraction.get_terrain_data(lat, lon, radius_m=radius_m), refresh)
+    CACHE_LOG.append(("terrain", status))
+    soil_all, status = cached(
+        store, make_key("soil", lat, lon, version=soil_version), SOIL_TTL,
+        lambda: phase1_data_pipeline.get_soil_data(lat, lon), refresh)
+    CACHE_LOG.append(("soil", status))
+    climate, status = cached(
+        store, make_key("climate", lat, lon, version=climate_version, extra=f"{START_YEAR}-{END_YEAR}"),
+        CLIMATE_TTL, lambda: phase4_inputs.get_climate_normals(lat, lon), refresh)
+    CACHE_LOG.append(("climate", status))
+
+    soil = soil_all["surface_soil"]
     env = {
         "annual_rainfall_mm": climate["annual_rainfall_mm"],
         "annual_mean_temp_c": climate["annual_mean_temp_c"],
@@ -328,6 +379,18 @@ def run_live(lat, lon, radius_m=DEFAULT_RADIUS):
         "elevation_m": terrain["terrain"]["elevation_m"],
     }
     return env, terrain
+
+
+def cache_flags(argv):
+    """--no-cache: do not read or write the cache. --refresh: recompute and overwrite it."""
+    return "--no-cache" not in argv, "--refresh" in argv
+
+
+def print_cache_line():
+    if CACHE_LOG:
+        store = dict(CACHE_LOG).get("store", "off")
+        parts = ", ".join(f"{name} {status}" for name, status in CACHE_LOG if name != "store")
+        print(f"Cache ({store}): {parts}")
 
 
 def parse_radius(argv, default=DEFAULT_RADIUS):
@@ -350,7 +413,8 @@ def main():
     else:
         lat, lon = (float(args[0]), float(args[1])) if len(args) >= 2 else (22.0797, 82.1409)
         print(f"Location: {lat}, {lon} (terrain radius {radius:g} m)\n")
-        env, terrain = run_live(lat, lon, radius)
+        env, terrain = run_live(lat, lon, radius, *cache_flags(argv))
+        print_cache_line()
     ranked, excluded, blank = match_plants(env)
     if "--brief" in argv:
         print_brief(env, terrain, ranked, excluded, blank)

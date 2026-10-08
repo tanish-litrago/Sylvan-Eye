@@ -34,6 +34,9 @@ LIGHT_CLAY_MAX = 20        # ... and clay below this -> light; everything else -
 
 ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
 
+# Cache version of get_climate_normals()'s output. Bump it whenever the returned data changes.
+CACHE_VERSION = 1
+
 
 # ---------------------------------------------------------------------------
 # Climate
