@@ -16,6 +16,10 @@ import ee
 
 EE_PROJECT = "sylvan-eye"
 
+# Cache version of get_terrain_data()'s output. Bump it whenever the returned data changes,
+# so cached results from older code are never reused. 3 = adds the multi-year swing.
+CACHE_VERSION = 3
+
 TEST_LAT = 22.0797
 TEST_LON = 82.1409
 LOCATION_NAME = "Bilaspur, Chhattisgarh"
@@ -32,6 +36,10 @@ SEASONAL_SWING = 0.25  # (p90 - p10) NDVI above this -> pixel changes a lot thro
                        # year, which suggests cropland or deciduous cover. A starting
                        # guess: validate it on known farmland vs known scrub.
 
+SWING_YEARS = (2023, 2024, 2025)  # years checked for a big seasonal swing (cropland that was fallow
+                                 # in one year may be cropped in another)
+MIN_IMAGES_PER_YEAR = 10         # skip a year with fewer low-cloud images than this
+
 CLASS_LABELS = {
     0: "water_or_wet_surface",
     1: "bare_or_built",
@@ -40,12 +48,34 @@ CLASS_LABELS = {
 }
 
 
+def _swing_fraction_for_year(region, year):
+    """Share of the area whose NDVI (p90 minus p10) swings by more than SEASONAL_SWING in one year.
+    Returns None if that year has too few usable images."""
+    col = (
+        ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
+        .filterBounds(region)
+        .filterDate(f"{year}-01-01", f"{year + 1}-01-01")
+        .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 20))
+    )
+    if col.size().getInfo() < MIN_IMAGES_PER_YEAR:
+        return None
+    pct = col.map(
+        lambda img: img.normalizedDifference(["B8", "B4"]).rename("ndvi")
+    ).reduce(ee.Reducer.percentile([10, 90]))
+    swing = pct.select("ndvi_p90").subtract(pct.select("ndvi_p10")).gt(SEASONAL_SWING).rename("swing")
+    frac = swing.reduceRegion(
+        reducer=ee.Reducer.mean(), geometry=region, scale=10, maxPixels=1e7
+    ).getInfo()["swing"]
+    return None if frac is None else round(frac, 3)
+
+
 def get_terrain_data(
     lat: float,
     lon: float,
     radius_m: int = 1000,
     start: str = "2025-01-01",
     end: str = "2026-01-01",
+    swing_years=SWING_YEARS,
 ):
     """
     Summarize the land around a point (a circle of radius_m metres).
@@ -145,6 +175,19 @@ def get_terrain_data(
         reducer=ee.Reducer.mean(), geometry=region, scale=30, maxPixels=1e7
     ).getInfo()
 
+    # Seasonal swing in each of several years. The best (largest) year is what the cropland
+    # check uses, because a field left fallow in one year can still be cropped in another.
+    swing_by_year = {}
+    for year in swing_years:
+        frac = _swing_fraction_for_year(region, year)
+        if frac is not None:
+            swing_by_year[year] = frac
+    if swing_by_year:
+        best_year = max(swing_by_year, key=swing_by_year.get)
+        best_swing = swing_by_year[best_year]
+    else:
+        best_year, best_swing = None, round(s2_stats["swing"], 3)
+
     return {
         "location": {"lat": lat, "lon": lon, "radius_m": radius_m},
         "imagery": {
@@ -161,6 +204,9 @@ def get_terrain_data(
             "ndvi_peak_p90_mean": round(s2_stats["ndvi_p90"], 3),
             "ndvi_range_mean": round(s2_stats["ndvi_range"], 3),
             "big_swing_fraction": round(s2_stats["swing"], 3),
+            "big_swing_by_year": swing_by_year,
+            "big_swing_fraction_best_year": best_swing,
+            "best_swing_year": best_year,
         },
         "land_cover_fractions": land_cover_fractions,
         "terrain": {
@@ -181,7 +227,9 @@ def main():
     print(f"NDVI dry (p10):   {seasonal['ndvi_dry_p10_mean']}")
     print(f"NDVI peak (p90):  {seasonal['ndvi_peak_p90_mean']}")
     print(f"NDVI range:       {seasonal['ndvi_range_mean']}")
-    print(f"Big-swing area:   {seasonal['big_swing_fraction'] * 100:.1f}%")
+    print(f"Big-swing area:   {seasonal['big_swing_fraction'] * 100:.1f}%  (composite year)")
+    by_year = ", ".join(f"{y}: {f * 100:.0f}%" for y, f in seasonal["big_swing_by_year"].items())
+    print(f"Big-swing by year: {by_year or 'no year had enough images'}")
     print(f"Elevation:   {result['terrain']['elevation_m']} m")
     print(f"Slope:       {result['terrain']['slope_deg']} degrees")
     print("Land cover:")
