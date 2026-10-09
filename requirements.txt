@@ -1,2 +1,5 @@
 requests>=2.31
 earthengine-api>=0.1.390
+fastapi>=0.110
+uvicorn>=0.29
+httpx>=0.27   # only needed by test_app.py

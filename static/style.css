@@ -1,0 +1,127 @@
+/* Sylvan Eye: light theme. White main area; frog colours as accents.
+   Palette sampled from the red-eyed tree frog photo (averaged values), plus tints of them.
+   Contrast checked: ink on white 13.4, leaf on white 8.3, white on leaf-mid 4.9,
+   ink on lime 9.1, orange-ink on white 6.5, blue on white 5.7 (all above the 4.5 text minimum).
+   Orange (#ce4c0f) is only 4.5 on white, so it is used for borders and fills, and the darker
+   --orange-ink for any small text. */
+:root {
+  --paper: #ffffff;
+  --page: #f3f7e9;          /* very light leaf tint behind the white card */
+  --ink: #2c3209;           /* darkest leaf: body text */
+  --muted: #4f5a2a;         /* secondary text */
+  --leaf: #40550a;          /* headings, links */
+  --leaf-mid: #697747;      /* buttons */
+  --leaf-mid-dark: #58663a; /* button hover */
+  --lime: #c3df8f;          /* header band, borders, highlights */
+  --lime-soft: #e6f1cf;     /* chips, code blocks */
+  --orange: #ce4c0f;        /* warnings: borders and fills */
+  --orange-ink: #a63a08;    /* warning text */
+  --orange-soft: #fbe9df;
+  --blue: #526790;          /* data limits / information */
+  --blue-ink: #3b4d73;
+  --blue-soft: #e3e9f5;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  line-height: 1.5;
+}
+
+/* ---- header band ---- */
+.site-header {
+  background: var(--lime);
+  border-bottom: 4px solid var(--leaf-mid);
+}
+.site-header-inner {
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: 1.25rem 1rem 1rem;
+}
+h1 { margin: 0 0 0.15rem; color: var(--leaf); font-size: 1.8rem; }
+.tagline { margin: 0; color: var(--ink); }
+
+/* ---- main white card ---- */
+main {
+  max-width: 60rem;
+  margin: 1.5rem auto;
+  padding: 1.5rem 1.25rem 2rem;
+  background: var(--paper);
+  border: 1px solid var(--lime);
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(44, 50, 9, 0.12);
+}
+@media (max-width: 62rem) {
+  main { margin: 1rem 0.75rem; }
+}
+
+/* ---- form ---- */
+.field { margin-bottom: 1rem; }
+.row { display: flex; gap: 1rem; flex-wrap: wrap; }
+.row .field { flex: 1 1 10rem; }
+
+label { display: block; margin-bottom: 0.25rem; font-weight: 600; color: var(--leaf); }
+.check { font-weight: 400; color: var(--ink); margin: 0.5rem 0; }
+.check input { margin-right: 0.5rem; }
+
+input[type="text"], select {
+  width: 100%;
+  padding: 0.55rem 0.6rem;
+  font: inherit;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--leaf-mid);
+  border-radius: 6px;
+}
+
+input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}
+
+details { margin: 0.5rem 0 1rem; }
+summary { cursor: pointer; font-weight: 600; color: var(--leaf); }
+
+button {
+  padding: 0.65rem 1.5rem;
+  font: inherit;
+  font-weight: 700;
+  color: #ffffff;
+  background: var(--leaf-mid);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+button:hover:not(:disabled) { background: var(--leaf-mid-dark); }
+button:disabled { opacity: 0.55; cursor: wait; }
+
+.hint { font-size: 0.9rem; color: var(--muted); margin: 0.25rem 0 0; }
+
+/* Colour is never the only signal: the message text says what is wrong. */
+.error {
+  margin: 0 0 1rem;
+  padding: 0.6rem 0.8rem;
+  color: var(--orange-ink);
+  background: var(--orange-soft);
+  border-left: 6px solid var(--orange);
+  border-radius: 0 6px 6px 0;
+  font-weight: 600;
+}
+
+/* ---- status and results ---- */
+#status-box { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--lime); }
+.status { margin: 0; font-weight: 600; color: var(--leaf); }
+
+#results { margin-top: 1rem; }
+pre {
+  overflow-x: auto;
+  padding: 0.75rem;
+  background: var(--lime-soft);
+  color: var(--ink);
+  border-radius: 6px;
+  font-size: 0.85rem;
+}

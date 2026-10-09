@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sylvan Eye</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-header-inner">
+      <h1>Sylvan Eye</h1>
+      <p class="tagline">Afforestation plant recommender. Rules decide; the LLM only explains.</p>
+    </div>
+  </header>
+
+  <main>
+    <form id="analyze-form" novalidate>
+      <div class="field">
+        <label for="paste">Paste a location from Google Maps</label>
+        <input id="paste" type="text" placeholder="22.0797, 82.1409" autocomplete="off">
+        <p id="paste-msg" class="hint" aria-live="polite"></p>
+      </div>
+
+      <div class="field">
+        <label for="site">or pick a test site</label>
+        <select id="site"></select>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label for="lat">Latitude</label>
+          <input id="lat" type="text" inputmode="decimal" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="lon">Longitude</label>
+          <input id="lon" type="text" inputmode="decimal" autocomplete="off">
+        </div>
+      </div>
+
+      <details>
+        <summary>Advanced</summary>
+        <div class="field">
+          <label for="radius">Radius around the point (metres)</label>
+          <input id="radius" type="text" inputmode="decimal" value="400">
+          <p class="hint">The radius can change the result: the same place can be blocked at 400 m and not at 1000 m.</p>
+        </div>
+        <label class="check"><input id="refresh" type="checkbox"> Recompute the measurements (ignore the cache)</label>
+        <label class="check"><input id="demo" type="checkbox"> Offline demo values (no satellite data, ignores the coordinates)</label>
+      </details>
+
+      <p id="form-error" class="error" role="alert" hidden></p>
+      <button id="go" type="submit">Analyse</button>
+    </form>
+
+    <section id="status-box" hidden>
+      <p id="status" class="status" aria-live="polite"></p>
+      <p id="slow-hint" class="hint" hidden>
+        A new location can take 1-2 minutes the first time. Places already analysed come back in seconds.
+      </p>
+    </section>
+
+    <section id="results" hidden></section>
+  </main>
+  <script src="/static/app.js"></script>
+</body>
+</html>
