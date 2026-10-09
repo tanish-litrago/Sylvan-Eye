@@ -2,7 +2,7 @@
 
 Purpose: a running record so any new session (or Claude instance) can pick up the project without re-asking. Update this file at the end of each phase. **Never put API keys or credentials in this file.**
 
-Last updated: 2026-10-05 (Phase 3 at 26 of 32 species; Phase 4 matcher works live on four sites, tolerances adjusted; Phase 5 explainer run with gemma4:e4b and qwen2.5:7b-instruct)
+Last updated: 2026-10-09 (Phase 6 web UI: steps 1-4 of 7 written, results page next; earlier: Phase 3 at 26 of 32 species; Phase 4 matcher works live on four sites; Phase 5 explainer run with gemma4:e4b and qwen2.5:7b-instruct)
 
 ---
 
@@ -46,6 +46,14 @@ Future: plant-care advice, multi-region comparison, larger-scale planning.
 | Imagery summary method | Median composite for NDVI; **per-pixel 90th percentile across images for water (NDWI)**; per-pixel p10/p90 for seasonal NDVI range |
 | Matcher tolerances (2026-10-06, chosen by Claude on the user's delegation) | pH within 0.3 of a stated limit = marginal, not excluded (pH is modelled); texture one class away (light/medium/heavy) = marginal, two away = poor; "poor" scores 0.35 (was 0.25, a judgement call); default terrain radius 400 m (was 1000); water or wet surface 20% to 49% = warning, 50% or more = block |
 | Water class name | Renamed to `water_or_wet_surface` because the signal cannot tell small ponds from seasonally damp bare ground |
+| Phase 6 stack (2026-10-08) | FastAPI backend plus one plain HTML/JS page, no npm or build step. Chosen over Streamlit and Flask+Jinja for hands-on understanding and because the 1-2 minute first run needs an honest wait |
+| Phase 6 long run (2026-10-08) | Background job plus polling: `POST /analyze` returns a job id at once, the page polls `GET /jobs/{id}` every 2 s. Chosen over Server-Sent Events and one blocking request. One analysis runs at a time (a lock) because `CACHE_LOG` in `phase4_matcher.py` is a shared module-level list. Redis not needed: single local user, in-process threads |
+| Phase 6 layout (2026-10-08) | One page, top to bottom: status banner, warnings (always expanded), tiers (replaced by the block reason when blocked), data limits (always visible), ruled-out list (collapsed, count shown). Tabs and two columns rejected so warnings cannot be skipped |
+| Phase 6 tiers (2026-10-08) | No rank numbers shown, because many plants tie on score (a missing value and a marginal fit both score 0.5). Rule layer (`tiers.py`) puts each plant in Strong fit (all four scored factors have data, none marginal or poor), Likely not fully verified (none flagged, some data missing) or Caution (any marginal or poor). Elevation is outside the tiers. An unknown verdict counts as a flag. Alphabetical inside a tier. Decided in Python, never in JavaScript |
+| Phase 6 LLM in the UI (2026-10-08) | Template text always shown; the LLM is a separate opt-in button that starts its own job, labelled as LLM-written with the model name and the notes from `explain()`. NOT BUILT YET |
+| Phase 6 plain-words text (2026-10-09, delegated to Claude) | The fact sheet passed to `build_facts` is in tier order, so the text names strong plants first and says top 8 of N; caution plants therefore do not appear in the text (they do on the page) |
+| Phase 6 location entry (2026-10-08) | Paste box for "lat, lon" copied from Google Maps, latitude and longitude fields, a dropdown of the five test sites, radius field (default 400 m, under Advanced), refresh and offline-demo boxes. The result always shows the radius used. No map yet |
+| Phase 6 theme (2026-10-08/09) | Palette sampled from the user's red-eyed tree frog photo. First a dark leaf theme; the user found the dark greens too dark and wanted white in the main area, so now light: white card, light lime header band, dark leaf only for text, orange for warnings, blue for data limits. Colour is never the only signal |
 
 ## 5. Build phases and status
 
@@ -56,7 +64,7 @@ Future: plant-care advice, multi-region comparison, larger-scale planning.
 | 3 | Plant requirement database (20-30 plants) | **Mostly done**: 26 of 32 species filled, 6 blank (see section 8) |
 | 4 | Rule-based matching layer | **Done** (`phase4_matcher.py`); offline demo and live run both work on Bilaspur city centre. Still to do: live runs on other sites and a local-knowledge check |
 | 5 | LLM explanation layer (plugin) | **Written, run with both local models on demo and live sites** (`phase5_explainer.py`); guard extended twice after reviewing real outputs; rerun with the updated guard still to do |
-| 6 | Integration + basic UI | Not started |
+| 6 | Integration + basic UI | **In progress, steps 1-4 of 7 written** (tiers, FastAPI skeleton, job layer, form and polling page). Next: step 5 results page, step 6 LLM opt-in button, step 7 fixtures, tests and handoff. See section 7c and 11 |
 | 7 | Testing across multiple regions | Not started |
 
 ## 6. Files
@@ -71,7 +79,11 @@ Future: plant-care advice, multi-region comparison, larger-scale planning.
 - `storage.py` — key-value cache with two interchangeable backends. SQLite (default, standard library, file `sylvan_cache.db`) or Postgres (optional: `pip install -r requirements-postgres.txt`, `SYLVAN_STORE=postgres`, `SYLVAN_DB_URL=postgresql://user:pass@host:5432/db`). Table `cache(key, value, created_at, expires_at)`; JSONB in Postgres. `make_key` rounds coordinates to 4 decimals (about 11 m) and includes a version and the radius. The version of each measurement comes from a `CACHE_VERSION` constant in the module that produces it (`phase2_terrain_extraction` = 3 since the multi-year swing, `phase1_data_pipeline` = 1, `phase4_inputs` = 1; the matcher uses 1 if a module has none), so cached data from older code is never reused. Bump the constant whenever a fetch function's output changes. `cached()` returns (value, hit/miss/refreshed/no-cache), normalises values through JSON so hits and misses look identical, and never lets a broken store stop the analysis.
 - `test_storage.py` — plain-assert tests (`python test_storage.py`; add `SYLVAN_TEST_DB_URL` to include Postgres, it wipes the `cache` table). 31 checks per run, no Earth Engine needed (slow fetches are faked). Last run: SQLite and a real PostgreSQL 16, all passed.
 - `requirements-postgres.txt` — `psycopg2-binary`, only needed for the Postgres backend.
-- `requirements.txt` — `requests`, `earthengine-api`.
+- `requirements.txt` — `requests`, `earthengine-api`, `fastapi`, `uvicorn`, `httpx` (httpx only for `test_app.py`).
+- `tiers.py` (Phase 6) — rule layer. `tier_for(entry)`, `group_by_tier(ranked)` (the page's tiers, no scores, alphabetical inside a tier), `order_by_tier(ranked)` (matcher entries in tier order, feeds the fact sheet), `TIER_ORDER`, `TIER_LABELS`. `python tiers.py --demo` prints the tiers offline. `test_tiers.py` tests it.
+- `jobs.py` (Phase 6) — job layer, no web code. `start_job(params)` returns a job id and runs `run_live`, `match_plants`, `build_facts`, `group_by_tier`, `explain` (template only) in a background thread; `get_job(id)` returns state (queued, running, done, error), a plain-English stage, seconds, and the result. Stage comes from what `run_live` has already written to `CACHE_LOG`. One analysis at a time (`_RUN_LOCK`); keeps the newest 50 jobs in memory. When blocked, tiers are empty (enforced here). The score-ordered shortlist is not sent to the page. `test_jobs.py` tests it with a faked `run_live`.
+- `app.py` (Phase 6) — FastAPI routes: `GET /health`, `GET /`, `POST /analyze` (202 plus job id; input limits: lat -90 to 90, lon -180 to 180, radius above 0 and at most 5000 m, which is a sanity ceiling chosen by Claude), `GET /jobs/{id}`. Refuses to start unless the working folder contains `plants.csv`. Run from the project folder: `python -m uvicorn app:app --reload`, then open http://127.0.0.1:8000 (FastAPI's test page is at /docs). `test_app.py` tests the routes.
+- `static/index.html`, `static/app.js`, `static/style.css` (Phase 6) — the page: paste box, site dropdown (the `SITES` array at the top of `app.js`), polling with a stage line and a slow-run hint after 8 s. Results are still a placeholder (one summary line plus raw JSON) until step 5. All server text goes in with `textContent`, never `innerHTML`.
 - `.gitignore` — must include `venv/`, `.env`, `__pycache__/`.
 
 Repo: github.com/tanish-litrago/Sylvan-Eye
@@ -117,6 +129,16 @@ Notes on the points:
 
 Observation: Khapri may look "not cropped" because 2025 imagery caught it fallow; a one-year seasonal rule only sees land that was cropped that year. FIX WRITTEN 2026-10-06; RUN LIVE ON KHAPRI 2026-10-07 (cache row `terrain:v3`): by year 2023 = 100%, 2024 = 99.2%, 2025 = 25.5%, best year 2023. The 2025 value matches the earlier single-year 26%, so the code is consistent with the old path. Hypothesis supported: Khapri was cropped in 2023 and 2024 and fallow in 2025. CONTROLS RUN 2026-10-07: city centre 32/8/11% and ash dyke 94/29/28% (2023/2024/2025). So the swing is not inflated everywhere (the city stays low), but a single year can spike (ash dyke 94% in 2023; 2023 is the highest year at both controls, cause unknown: possibly real lagoon changes or a 2023 imagery quirk). DECISION: the gate no longer uses the best year; the cropland warning needs a swing of 40% or more in at least 2 years (or the only year available) plus dry NDVI under 0.2. On the real values: Khapri flagged (2 of 3 years: 2023, 2024), city centre and ash dyke not flagged for cropland (the ash dyke is still blocked for water). Tuned on a handful of sites: unvalidated. A field cropped in only one of three years would be missed. Original note: `phase2_terrain_extraction.py` now computes the big-swing share separately for 2023, 2024 and 2025 (`big_swing_by_year`, `big_swing_fraction_best_year`, `best_swing_year`; years with under 10 low-cloud images are skipped), and the matcher gate uses the best year. This also tests the hypothesis: rerun Khapri at 400 m; if one year shows a high swing the hypothesis holds, if all three are low it is rejected. Fixture tests only; the Earth Engine code has not been run.
 Observation: rainfall and temperature are identical (1487 mm, 26.5 C) at the park and the last site, so the Open-Meteo reanalysis grid is coarse; climate does not discriminate between nearby sites. Terrain, soil and elevation do.
+
+## 7c. Phase 6 web UI tests (2026-10-09)
+
+Verified by the user on their machine: `python tiers.py --demo` output and `test_tiers.py` (step 1, 3 tests at the time); the server runs and `test_app.py` passed (step 2 version); a demo job run from FastAPI's /docs returned state done (step 3).
+
+Verified only in Claude's sandbox, NOT yet by the user: `test_jobs.py` (7 tests: demo job offline, unknown job, stage changes follow the log, blocked site gets no plants, error then next job still runs, queued job waits, old jobs pruned), the newer `test_app.py` (bad input gives 422, unknown job 404, demo end to end), `test_tiers.py` with `order_by_tier`, and the page logic of `static/app.js` (16 checks in a simulated browser against a real server with a slow fake `run_live`: paste parsing, site menu, validation, 422 message, demo run, stage lines, slow hint, results shown). The look of the page has never been seen in a real browser by Claude; contrast ratios were calculated, not eyeballed.
+
+Never run: the web path with real Earth Engine (a cached site should return in seconds, a new place in 1-2 minutes). The five sites for it are in `SITES` in `app.js`.
+
+On the demo values (Bilaspur city centre) the tiers are: 1 Strong fit (Moringa), 12 Likely, 10 Caution, 3 ruled out, 6 with no data.
 
 ## 8. Known issues and caveats
 
@@ -168,6 +190,16 @@ Observation: rainfall and temperature are identical (1487 mm, 26.5 C) at the par
 **Other**
 - Earth Engine prints a feedback-survey line on init; harmless.
 
+### Phase 6 caveats
+
+- **One analysis at a time.** Concurrent requests queue behind a lock because `CACHE_LOG` is shared. Fine for one user. The stage line is read from that same shared list; a progress callback argument on `run_live` would be cleaner.
+- **Jobs live in memory** (newest 50), lost on restart. No accounts, no auth, and raw error text is shown on the page: this is for local use only, do not put it on a public host as it is.
+- **Start the server from the project folder.** `plants.csv` and `sylvan_cache.db` are found relative to the working folder; elsewhere a new empty cache would make every place look new (1-2 minutes). `app.py` now exits with a message instead.
+- **Tiers measure completeness as well as fit.** On the demo values only Moringa is Strong, because many plants have no pH or texture data. Read Strong as "all four factors checked and none flagged", not "best plant". Filling the blank cells in `plants.csv` moves plants up.
+- **The plain-words text covers the top 8 in tier order**, so Caution plants never appear in it; the page shows all of them.
+- **No check for places outside India.** The plant list is an India-wide mix and the page accepts any coordinates; whether the soil and climate sources behave elsewhere has not been checked.
+- **Radius changes the verdict** (ash dyke: blocked at 400 m, not at 1000 m). The page shows the radius used; the 5000 m input ceiling is arbitrary.
+
 ## 9. Security notes
 
 - **Never commit `sylvan_cache.db` or any `*.db` file, or a database URL.** Add `*.db` to `.gitignore`. `SYLVAN_DB_URL` contains the Postgres password; set it as an environment variable only. Error messages from `storage.py` do not print the password.
@@ -182,6 +214,8 @@ Observation: rainfall and temperature are identical (1487 mm, 26.5 C) at the par
 - Explain the *why* of each decision; user wants to build it hands-on rather than receive a finished black box.
 - Confirm important decisions with the user before locking them in.
 - Verify against reality (satellite view) rather than trusting a number; several of this phase's fixes came from the user's screenshots.
+- Design decisions one at a time: Claude proposes options with reasons and marks its pick; the user chooses. For a decision the user hands over ("do what is good"), Claude decides, says what it chose and why, and records it here.
+- When debugging, the user pastes only the output lines that are needed, not whole logs; ask for specific lines.
 
 ## 11. Next steps
 
@@ -197,5 +231,10 @@ Observation: rainfall and temperature are identical (1487 mm, 26.5 C) at the par
 4. **Phase 5: rerun `--llm`** on Khapri and the park with the updated guard (check for cut-offs and rejections); decide whether to keep the LLM at all or use it only for a short overview paragraph with the per-plant lines left to the template.
 4a. **Live results after the matcher fixes (2026-10-06, default 400 m radius):** city centre: built-up warning (44% bare/built); park: no warnings (0% bare/built, 94% big swing, NDVI dry 0.29); Khapri farmland: NO warning (swing only 26%, bare/built 3%, 97% sparse/crops, NDVI dry 0.188) although it is farmland, so the cropland rule missed it; ash dyke 400 m: blocked (60% water/wet); ash dyke 1000 m: not blocked (water/wet 17% is below the 20% warning level, peak NDVI 0.287 so no never-green warning; only a 42% built-up warning and a 23-plant list). LLM tails (gemma4:e4b) on Khapri and the park finished properly, were accepted first try and matched the plain report for the plants visible.
 4b. **Matcher fixes made 2026-10-06** (see Decisions): pH margin, texture adjacency, milder poor, water warning, 400 m default radius, terrain summary line. Offline comparison on the four sites' saved environments: salai no longer excluded on pH 7.46-7.58 (now marginal), mango and sissoo no longer penalised for heavy soil (0.81 to 0.88), neem 0.69 to 0.71. Still to do: rerun the five live commands (the gate was not re-tested live at 400 m for city, park and Khapri).
-5. **Phase 6: integration and a basic UI** (coordinate form, results display with the warnings and the ruled-out list).
+5. **Phase 6: web UI, steps 1-4 of 7 written** (see 7c for what was checked where). To do next:
+   - **Check on the user's machine:** `python test_tiers.py`, `python test_jobs.py`, `python test_app.py`; start the server from the project folder; demo run in the page; a cached site live (seconds); the ash dyke (should start with BLOCKED); one new place (stage lines, slow hint, 1-2 minutes); tell Claude if any colour is off.
+   - **Step 5, results page** in the decided order: banner (blocked, warnings, or no gate warnings), warnings expanded, tiers with per-factor chips (good, marginal, no data) and flags, data limits (the `limits` list plus the terrain summary line and the radius used), ruled-out list collapsed with its count and each reason, the not-assessed (no data) plants, the plain-words text, and the cache hit/miss line. Replace the placeholder `finish()` in `app.js`.
+   - **Step 6, LLM opt-in button:** a second endpoint and job that calls `explain(facts, OllamaExplainer)`, panel labelled LLM-written with model name and the notes; if Ollama is not running say so and keep the template text. Needs the fact sheet again (keep `facts` on the job or rebuild it).
+   - **Step 7:** saved terrain, soil and climate fixtures for the five sites so the page can be built and tested without Earth Engine, tests for the new routes, update this file, commit after tests pass.
+   - Later: map click for coordinates; progress callback in `run_live`; decide whether a weed flag (babul, jamun) should ever change a tier.
 6. Later/optional: find a true degraded natural-land test site; monsoon cloud masking; WorldCover or JRC water cross-check; cross-check reanalysis rainfall against rain-gauge data.
