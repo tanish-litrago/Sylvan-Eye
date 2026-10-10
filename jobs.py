@@ -25,14 +25,15 @@ import traceback
 import uuid
 
 from phase4_matcher import CACHE_LOG, DEMO_ENV, match_plants, run_live, terrain_summary_line
-from phase5_explainer import build_facts, explain
-from tiers import TIER_LABELS, TIER_ORDER, group_by_tier, order_by_tier
+from phase5_explainer import OllamaExplainer, build_facts, explain, template_explanation
+from tiers import TIER_DESCRIPTIONS, TIER_LABELS, TIER_ORDER, group_by_tier, order_by_tier
 
 MAX_JOBS = 50          # keep only the newest jobs so memory does not grow forever
 
 _JOBS = {}
 _JOBS_LOCK = threading.Lock()
 _RUN_LOCK = threading.Lock()
+_LLM_LOCK = threading.Lock()   # one language-model call at a time (a local model is slow and heavy)
 
 
 # ---------------------------------------------------------------------------
@@ -44,9 +45,9 @@ def start_job(params):
     thread and returns the job id immediately.
     """
     job_id = uuid.uuid4().hex
-    job = {"id": job_id, "params": dict(params), "state": "queued",
+    job = {"id": job_id, "kind": "analysis", "params": dict(params), "state": "queued",
            "created": time.time(), "started": None, "finished": None,
-           "result": None, "error": None}
+           "result": None, "error": None, "facts": None}
     with _JOBS_LOCK:
         _JOBS[job_id] = job
         _prune()
@@ -63,6 +64,7 @@ def get_job(job_id):
     state = job["state"]
     return {
         "job_id": job_id,
+        "kind": job["kind"],            # analysis | explain
         "state": state,                 # queued | running | done | error
         "stage": _stage(job),           # a plain-English line for the page to show
         "seconds": _seconds(job),
@@ -88,12 +90,16 @@ def _seconds(job):
 
 def _stage(job):
     state = job["state"]
+    explain_job = job["kind"] == "explain"
     if state == "queued":
-        return "Waiting for another analysis to finish"
+        return ("Waiting for the local model to be free" if explain_job
+                else "Waiting for another analysis to finish")
     if state == "done":
         return "Done"
     if state == "error":
         return "Failed"
+    if explain_job:
+        return "Waiting for the local model (this can take a minute or more)"
     if job["params"]["demo"]:
         return "Matching plants"
     # Running a live analysis. run_live adds one entry to CACHE_LOG after each measurement
@@ -119,7 +125,7 @@ def _work(job_id):
         job["started"] = time.time()
         job["state"] = "running"
         try:
-            job["result"] = _analyze(job["params"])      # result first ...
+            job["result"], job["facts"] = _analyze(job["params"])   # result first ...
             job["state"] = "done"                         # ... then state, so a poll never sees
         except Exception as e:                            # "done" without a result
             traceback.print_exc()                         # full detail stays in the server console
@@ -155,13 +161,69 @@ def _analyze(p):
 
     text, notes = explain(facts)    # template only: the LLM is a separate, opt-in step (later)
 
-    return {
+    result = {
         "location": {"lat": lat, "lon": lon, "radius_m": radius, "demo": p["demo"]},
         "facts": page_facts,
         "tiers": tiers,
         "tier_order": list(TIER_ORDER),
         "tier_labels": dict(TIER_LABELS),
+        "tier_descriptions": dict(TIER_DESCRIPTIONS),
         "terrain_summary": terrain_summary_line(terrain) if terrain else None,
         "explanation": {"source": "template", "text": text, "notes": notes},
         "cache": cache,
     }
+    # The full fact sheet stays on the server (never sent to the page) so an optional
+    # language-model job can be run on exactly the facts the rules produced.
+    return result, facts
+
+
+# ---------------------------------------------------------------------------
+# Optional language-model explanation (a second job, started by the user)
+# ---------------------------------------------------------------------------
+def start_explain_job(parent_id, model):
+    """
+    Start a language-model rewrite of a FINISHED analysis. Raises LookupError if the analysis
+    is unknown (or was pruned) and ValueError if it cannot be explained yet or ever
+    (unfinished, or blocked: the model is never used for a blocked location).
+    """
+    with _JOBS_LOCK:
+        parent = _JOBS.get(parent_id)
+    if parent is None or parent["kind"] != "analysis":
+        raise LookupError("unknown analysis (it may have expired)")
+    if parent["state"] != "done":
+        raise ValueError("the analysis is not finished yet")
+    if parent["facts"]["blocked"]:
+        raise ValueError("the language model is never used for a blocked location")
+
+    job_id = uuid.uuid4().hex
+    job = {"id": job_id, "kind": "explain", "params": {"parent": parent_id, "model": model},
+           "state": "queued", "created": time.time(), "started": None, "finished": None,
+           "result": None, "error": None, "facts": parent["facts"]}
+    with _JOBS_LOCK:
+        _JOBS[job_id] = job
+        _prune()
+    threading.Thread(target=_work_explain, args=(job_id,), daemon=True).start()
+    return job_id
+
+
+def _work_explain(job_id):
+    with _JOBS_LOCK:
+        job = _JOBS.get(job_id)
+    if job is None:
+        return
+    with _LLM_LOCK:
+        job["started"] = time.time()
+        job["state"] = "running"
+        try:
+            model, facts = job["params"]["model"], job["facts"]
+            text, notes = explain(facts, OllamaExplainer(model=model))
+            # explain() falls back to the template when the checks reject the model's answer.
+            source = "template" if text == template_explanation(facts) else "llm"
+            job["result"] = {"source": source, "text": text, "notes": notes, "model": model}
+            job["state"] = "done"
+        except Exception as e:      # e.g. Ollama is not running: the message says what to do
+            traceback.print_exc()
+            job["error"] = f"{type(e).__name__}: {e}"
+            job["state"] = "error"
+        finally:
+            job["finished"] = time.time()

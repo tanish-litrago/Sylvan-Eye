@@ -6,6 +6,8 @@ Routes:
     GET  /              the page
     POST /analyze       start an analysis; answers at once with a job id (HTTP 202)
     GET  /jobs/{id}     status of that job; carries the result when it is done
+    GET  /llm/models    the local models the page may offer
+    POST /jobs/{id}/explain   optional: rewrite a finished analysis with a local language model
 
 The work itself lives in jobs.py; this file only maps URLs to it and validates input.
 
@@ -23,12 +25,14 @@ from pydantic import BaseModel, Field
 
 import jobs
 from phase4_matcher import DEFAULT_RADIUS
+from phase5_explainer import OLLAMA_MODEL
 
 # Paths are built from this file's location, not from the folder you launch the server in,
 # so the app finds its page no matter where you start it from.
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
 
+LLM_MODELS = [OLLAMA_MODEL, "qwen2.5:7b-instruct"]   # the two models run so far (HANDOFF section 8)
 MAX_RADIUS_M = 5000   # a sanity ceiling I chose, not a rule from the data: change it if you need to
 
 # plants.csv and the cache file (sylvan_cache.db) are found relative to the folder the server
@@ -70,6 +74,28 @@ def job_status(job_id: str):
     if view is None:
         raise HTTPException(status_code=404, detail="unknown job")
     return view
+
+
+class ExplainRequest(BaseModel):
+    model: str = OLLAMA_MODEL
+
+
+@app.get("/llm/models")
+def llm_models():
+    return {"models": LLM_MODELS, "default": OLLAMA_MODEL}
+
+
+@app.post("/jobs/{job_id}/explain", status_code=202)
+def explain_job(job_id: str, req: ExplainRequest):
+    """Start the optional language-model rewrite. Poll the returned id with GET /jobs/{id}."""
+    if req.model not in LLM_MODELS:
+        raise HTTPException(status_code=422, detail="unknown model")
+    try:
+        return {"job_id": jobs.start_explain_job(job_id, req.model)}
+    except LookupError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
 
 
 @app.get("/")

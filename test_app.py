@@ -59,6 +59,51 @@ def test_demo_analysis_end_to_end():
     assert set(view["result"]["tiers"]) == {"strong", "likely", "caution"}
 
 
+def test_llm_models_and_explain_routes():
+    import json, time
+    import jobs
+    from phase5_explainer import template_explanation
+
+    m = client.get("/llm/models").json()
+    assert m["default"] in m["models"] and len(m["models"]) >= 1
+
+    assert client.post("/jobs/nope/explain", json={"model": m["default"]}).status_code == 404
+
+    r = client.post("/analyze", json={"lat": 22.0797, "lon": 82.1409, "demo": True})
+    job_id = r.json()["job_id"]
+    for _ in range(300):
+        if client.get(f"/jobs/{job_id}").json()["state"] in ("done", "error"):
+            break
+        time.sleep(0.02)
+
+    assert client.post(f"/jobs/{job_id}/explain", json={"model": "not-a-model"}).status_code == 422
+
+    class Fake:
+        def __init__(self, model="x"):
+            self.model, self.name, self.truncated = model, f"ollama:{model}", False
+        def explain(self, system, user):
+            facts = json.loads(user.split("Fact sheet:\n", 1)[1].split("\n\nYour previous", 1)[0])
+            return "Overview. " + template_explanation(facts)
+
+    real = jobs.OllamaExplainer
+    jobs.OllamaExplainer = Fake
+    try:
+        r = client.post(f"/jobs/{job_id}/explain", json={"model": m["default"]})
+        assert r.status_code == 202
+        ex_id = r.json()["job_id"]
+        for _ in range(300):
+            view = client.get(f"/jobs/{ex_id}").json()
+            if view["state"] in ("done", "error"):
+                break
+            time.sleep(0.02)
+        assert view["state"] == "done" and view["kind"] == "explain", view
+        assert view["result"]["source"] == "llm"
+    finally:
+        jobs.OllamaExplainer = real
+    # an explain job id is not an analysis
+    assert client.post(f"/jobs/{ex_id}/explain", json={"model": m["default"]}).status_code == 404
+
+
 if __name__ == "__main__":
     test_health()
     test_page_is_served()
@@ -67,4 +112,5 @@ if __name__ == "__main__":
     test_analyze_rejects_bad_input()
     test_unknown_job_is_404()
     test_demo_analysis_end_to_end()
+    test_llm_models_and_explain_routes()
     print("all app tests passed")

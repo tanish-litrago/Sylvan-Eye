@@ -3,11 +3,13 @@ Tests for jobs.py. Plain asserts, no network, no Earth Engine:  python test_jobs
 run_live is replaced by a fake that we control step by step with threading Events.
 """
 
+import json
 import threading
 import time
 
 import jobs
 from phase4_matcher import CACHE_LOG, DEMO_ENV, match_plants
+from phase5_explainer import template_explanation
 
 REAL_RUN_LIVE = jobs.run_live
 
@@ -58,6 +60,7 @@ def test_demo_job_runs_offline():
     assert "shortlist" not in r["facts"]            # the page shows tiers, not the score order
     assert r["facts"]["limits"] and r["facts"]["ruled_out"] is not None
     assert r["explanation"]["source"] == "template"
+    assert set(r["tier_descriptions"]) == set(r["tier_order"])
     assert r["location"]["demo"] is True and r["terrain_summary"] is None
     # the plain-words text names the strong plant before any "caution" plant
     text = r["explanation"]["text"]
@@ -162,6 +165,131 @@ def test_old_jobs_are_pruned():
     assert jobs.get_job(ids[0]) is None and jobs.get_job(ids[-1]) is not None
 
 
+REAL_OLLAMA = jobs.OllamaExplainer
+
+
+class FakeExplainer:
+    """Stands in for Ollama. mode: ok (text that passes the checks), bad (rejected), down."""
+    mode = "ok"
+
+    def __init__(self, model="x"):
+        self.model, self.name, self.truncated = model, f"ollama:{model}", False
+
+    def explain(self, system, user):
+        if FakeExplainer.mode == "down":
+            raise RuntimeError("Could not reach Ollama. Start it (ollama serve).")
+        if FakeExplainer.mode == "bad":
+            return "Nothing useful."
+        facts = json.loads(user.split("Fact sheet:\n", 1)[1].split("\n\nYour previous", 1)[0])
+        return "Overview of this site. " + template_explanation(facts)
+
+
+def with_fake_llm(mode):
+    FakeExplainer.mode = mode
+    jobs.OllamaExplainer = FakeExplainer
+
+
+def demo_analysis():
+    jid = jobs.start_job(params(demo=True))
+    assert wait_for(jid, {"done", "error"})["state"] == "done"
+    return jid
+
+
+def test_llm_job_accepted_answer():
+    with_fake_llm("ok")
+    try:
+        v = wait_for(jobs.start_explain_job(demo_analysis(), "gemma4:e4b"), {"done", "error"})
+        assert v["state"] == "done" and v["kind"] == "explain", v
+        r = v["result"]
+        assert r["source"] == "llm" and r["model"] == "gemma4:e4b"
+        assert r["text"].startswith("Overview of this site.")
+        assert any("LLM-written text" in n for n in r["notes"])
+        assert "facts" not in v                    # the fact sheet is never sent out
+    finally:
+        jobs.OllamaExplainer = REAL_OLLAMA
+
+
+def test_llm_job_rejected_answer_falls_back_to_template():
+    with_fake_llm("bad")
+    try:
+        v = wait_for(jobs.start_explain_job(demo_analysis(), "gemma4:e4b"), {"done", "error"})
+        assert v["state"] == "done", v
+        r = v["result"]
+        assert r["source"] == "template" and any("rejected" in n for n in r["notes"])
+    finally:
+        jobs.OllamaExplainer = REAL_OLLAMA
+
+
+def test_llm_job_ollama_down_is_an_error_message():
+    with_fake_llm("down")
+    try:
+        v = wait_for(jobs.start_explain_job(demo_analysis(), "gemma4:e4b"), {"done", "error"})
+        assert v["state"] == "error" and "Could not reach Ollama" in v["error"] and v["result"] is None
+    finally:
+        jobs.OllamaExplainer = REAL_OLLAMA
+    with_fake_llm("ok")                           # the lock was released: the next call works
+    try:
+        v = wait_for(jobs.start_explain_job(demo_analysis(), "gemma4:e4b"), {"done", "error"})
+        assert v["state"] == "done"
+    finally:
+        jobs.OllamaExplainer = REAL_OLLAMA
+
+
+def test_llm_job_refusals():
+    # unknown analysis
+    try:
+        jobs.start_explain_job("nope", "gemma4:e4b")
+        assert False, "should have raised"
+    except LookupError:
+        pass
+    # an explain job is not an analysis
+    with_fake_llm("ok")
+    try:
+        ex = jobs.start_explain_job(demo_analysis(), "gemma4:e4b")
+        wait_for(ex, {"done", "error"})
+        try:
+            jobs.start_explain_job(ex, "gemma4:e4b")
+            assert False, "should have raised"
+        except LookupError:
+            pass
+    finally:
+        jobs.OllamaExplainer = REAL_OLLAMA
+    # blocked location: never
+    def blocked(lat, lon, radius_m, use_cache, refresh):
+        CACHE_LOG.append(("store", "off"))
+        return dict(DEMO_ENV), fake_terrain(water=0.6)
+    jobs.run_live = blocked
+    try:
+        jid = jobs.start_job(params())
+        assert wait_for(jid, {"done", "error"})["state"] == "done"
+        try:
+            jobs.start_explain_job(jid, "gemma4:e4b")
+            assert False, "should have raised"
+        except ValueError as e:
+            assert "blocked" in str(e)
+    finally:
+        jobs.run_live = REAL_RUN_LIVE
+    # unfinished analysis
+    gate = threading.Event()
+    def slow(lat, lon, radius_m, use_cache, refresh):
+        CACHE_LOG.append(("store", "off"))
+        gate.wait(5)
+        return dict(DEMO_ENV), fake_terrain()
+    jobs.run_live = slow
+    try:
+        jid = jobs.start_job(params())
+        wait_stage(jid, "Fetching terrain")
+        try:
+            jobs.start_explain_job(jid, "gemma4:e4b")
+            assert False, "should have raised"
+        except ValueError as e:
+            assert "not finished" in str(e)
+        gate.set()
+        wait_for(jid, {"done", "error"})
+    finally:
+        jobs.run_live = REAL_RUN_LIVE
+
+
 if __name__ == "__main__":
     test_demo_job_runs_offline()
     test_unknown_job_is_none()
@@ -170,4 +298,8 @@ if __name__ == "__main__":
     test_error_is_reported_and_the_next_job_still_runs()
     test_second_job_waits_for_the_first()
     test_old_jobs_are_pruned()
+    test_llm_job_accepted_answer()
+    test_llm_job_rejected_answer_falls_back_to_template()
+    test_llm_job_ollama_down_is_an_error_message()
+    test_llm_job_refusals()
     print("all job tests passed")

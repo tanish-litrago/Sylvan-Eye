@@ -34,6 +34,12 @@ TIER_LABELS = {
     "caution": "Caution",
 }
 
+TIER_DESCRIPTIONS = {
+    "strong": "All four checks (rainfall, temperature, pH, texture) have data and none is marginal or poor.",
+    "likely": "Nothing is marginal or poor, but at least one check has no data, so it is not fully verified.",
+    "caution": "At least one check is marginal or poor.",
+}
+
 
 def tier_for(entry):
     """Return (tier, reason) for one matcher entry (one item of match_plants()'s 'ranked')."""
