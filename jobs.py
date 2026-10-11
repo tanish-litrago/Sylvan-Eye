@@ -206,6 +206,21 @@ def start_explain_job(parent_id, model):
     return job_id
 
 
+class _Recording:
+    """Wraps the explainer and keeps what the model actually wrote, so a rejection can show it."""
+
+    def __init__(self, inner):
+        self.inner, self.name, self.last_text = inner, inner.name, ""
+
+    @property
+    def truncated(self):
+        return getattr(self.inner, "truncated", False)
+
+    def explain(self, system, user):
+        self.last_text = self.inner.explain(system, user)
+        return self.last_text
+
+
 def _work_explain(job_id):
     with _JOBS_LOCK:
         job = _JOBS.get(job_id)
@@ -216,9 +231,15 @@ def _work_explain(job_id):
         job["state"] = "running"
         try:
             model, facts = job["params"]["model"], job["facts"]
-            text, notes = explain(facts, OllamaExplainer(model=model))
+            recorder = _Recording(OllamaExplainer(model=model))
+            text, notes = explain(facts, recorder)
             # explain() falls back to the template when the checks reject the model's answer.
             source = "template" if text == template_explanation(facts) else "llm"
+            if source == "template":
+                # Show what the model really wrote, so the cause (empty, cut off, wrong plant
+                # names, ...) can be read instead of guessed.
+                notes = notes + [f"What the model wrote last ({len(recorder.last_text)} characters, "
+                                 f"first 400): {recorder.last_text[:400]!r}"]
             job["result"] = {"source": source, "text": text, "notes": notes, "model": model}
             job["state"] = "done"
         except Exception as e:      # e.g. Ollama is not running: the message says what to do

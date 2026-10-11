@@ -32,7 +32,7 @@ from phase5_explainer import OLLAMA_MODEL
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
 
-LLM_MODELS = [OLLAMA_MODEL, "qwen2.5:7b-instruct"]   # the two models run so far (HANDOFF section 8)
+LLM_MODELS = [OLLAMA_MODEL]   # qwen2.5:7b-instruct was dropped (user decision, 2026-10-10): see HANDOFF section 8
 MAX_RADIUS_M = 5000   # a sanity ceiling I chose, not a rule from the data: change it if you need to
 
 # plants.csv and the cache file (sylvan_cache.db) are found relative to the folder the server

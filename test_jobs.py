@@ -216,6 +216,7 @@ def test_llm_job_rejected_answer_falls_back_to_template():
         assert v["state"] == "done", v
         r = v["result"]
         assert r["source"] == "template" and any("rejected" in n for n in r["notes"])
+        assert any("What the model wrote last" in n and "Nothing useful." in n for n in r["notes"])
     finally:
         jobs.OllamaExplainer = REAL_OLLAMA
 

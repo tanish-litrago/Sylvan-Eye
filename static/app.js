@@ -479,7 +479,7 @@ function renderLlmResult(out, res) {
   if (res.source === "llm") {
     panel.appendChild(el("h3", "", "LLM-written text (" + res.model + ")"));
   } else {
-    panel.appendChild(el("h3", "", "The model's answer was rejected"));
+    panel.appendChild(el("h3", "", "The model's answer was rejected (" + res.model + ")"));
     panel.appendChild(el("p", "", "The checks rejected what the model wrote, so this is the template text again."));
   }
   panel.appendChild(el("pre", "plain", res.text));
