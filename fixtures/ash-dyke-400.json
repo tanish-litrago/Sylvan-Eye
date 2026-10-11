@@ -1,0 +1,59 @@
+{
+  "env": {
+    "annual_mean_temp_c": 26.3,
+    "annual_rainfall_mm": 1529,
+    "elevation_m": 273.0,
+    "ph": 7.47,
+    "soil_texture": "heavy"
+  },
+  "exported_on": "2026-10-10",
+  "site": {
+    "lat": 22.07937,
+    "lon": 82.281826,
+    "name": "Ash dyke",
+    "radius_m": 400,
+    "slug": "ash-dyke-400"
+  },
+  "terrain": {
+    "imagery": {
+      "date_range": [
+        "2025-01-01",
+        "2026-01-01"
+      ],
+      "images_used": 42,
+      "source": "Sentinel-2 SR median composite (Earth Engine)"
+    },
+    "land_cover_fractions": {
+      "bare_or_built": 0.402,
+      "dense_vegetation": 0.0,
+      "sparse_vegetation_or_crops": 0.0,
+      "water_or_wet_surface": 0.598
+    },
+    "location": {
+      "lat": 22.07937,
+      "lon": 82.281826,
+      "radius_m": 400
+    },
+    "seasonality": {
+      "best_swing_year": 2023,
+      "big_swing_by_year": {
+        "2023": 0.939,
+        "2024": 0.293,
+        "2025": 0.284
+      },
+      "big_swing_fraction": 0.284,
+      "big_swing_fraction_best_year": 0.939,
+      "ndvi_dry_p10_mean": -0.09,
+      "ndvi_peak_p90_mean": 0.115,
+      "ndvi_range_mean": 0.204
+    },
+    "terrain": {
+      "elevation_m": 273.0,
+      "slope_deg": 3.0
+    },
+    "vegetation": {
+      "ndvi_mean": 0.037,
+      "ndwi_p90_mean": 0.118
+    }
+  }
+}

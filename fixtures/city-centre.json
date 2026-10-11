@@ -1,0 +1,59 @@
+{
+  "env": {
+    "annual_mean_temp_c": 26.4,
+    "annual_rainfall_mm": 1520,
+    "elevation_m": 268.2,
+    "ph": 7.58,
+    "soil_texture": "medium"
+  },
+  "exported_on": "2026-10-10",
+  "site": {
+    "lat": 22.0797,
+    "lon": 82.1409,
+    "name": "Bilaspur city centre",
+    "radius_m": 400,
+    "slug": "city-centre"
+  },
+  "terrain": {
+    "imagery": {
+      "date_range": [
+        "2025-01-01",
+        "2026-01-01"
+      ],
+      "images_used": 41,
+      "source": "Sentinel-2 SR median composite (Earth Engine)"
+    },
+    "land_cover_fractions": {
+      "bare_or_built": 0.445,
+      "dense_vegetation": 0.104,
+      "sparse_vegetation_or_crops": 0.451,
+      "water_or_wet_surface": 0.0
+    },
+    "location": {
+      "lat": 22.0797,
+      "lon": 82.1409,
+      "radius_m": 400
+    },
+    "seasonality": {
+      "best_swing_year": 2023,
+      "big_swing_by_year": {
+        "2023": 0.322,
+        "2024": 0.084,
+        "2025": 0.111
+      },
+      "big_swing_fraction": 0.111,
+      "big_swing_fraction_best_year": 0.322,
+      "ndvi_dry_p10_mean": 0.196,
+      "ndvi_peak_p90_mean": 0.349,
+      "ndvi_range_mean": 0.153
+    },
+    "terrain": {
+      "elevation_m": 268.2,
+      "slope_deg": 2.58
+    },
+    "vegetation": {
+      "ndvi_mean": 0.267,
+      "ndwi_p90_mean": -0.229
+    }
+  }
+}
