@@ -55,6 +55,14 @@ def start_job(params):
     return job_id
 
 
+def analyze(params):
+    """
+    Run one analysis in the calling thread (no background job) and return the same result the
+    page gets. For scripts such as run_regions.py. params: lat, lon, radius_m, refresh, demo.
+    """
+    return _analyze(params)[0]
+
+
 def get_job(job_id):
     """What the page needs for one job, or None if the id is unknown."""
     with _JOBS_LOCK:
