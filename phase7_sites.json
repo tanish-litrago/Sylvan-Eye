@@ -1,6 +1,7 @@
 {
   "_help": [
     "Phase 7 sites. YOU fill in the blank fields BEFORE running run_regions.py. The runner refuses a site until they are filled.",
+    "The coordinates were checked by the user on the satellite view on 2026-10-13 (start points came from Gemini and Claude, and several were corrected). Write land_type yourself, from what you see.",
     "lat and lon are only MY approximate starting points. Open each on the satellite view, move the pin to the land type in 'intended', paste the real 'lat, lon' here, then set verified to true.",
     "land_type: what you actually see at the point (for example 'bare sandy soil with sparse shrubs').",
     "expect_gate: none, warning or blocked. Your blind expectation of the eligibility gate.",
@@ -8,7 +9,8 @@
     "expect_plants: plants you expect to be offered (any tier). expect_ruled_out: plants you expect to be ruled out. expect_not_strong: plants you would be unhappy to see as Strong fit.",
     "Plant names as in plants.csv (for example Khejri, Babul, Teak, Sissoo, Bamboo, Salai).",
     "status: pending now. After the review use accepted (the system is right and your expectation was wrong or right) or known_issue (the system is wrong; say why in notes).",
-    "Commit this file before the first run: the commit time proves your expectations came first."
+    "Commit this file before the first run: the commit time proves your expectations came first.",
+    "Provenance: the expectations for all ten sites were drafted by Claude from general knowledge (not from the gate rules and before any result existed) and accepted unchanged by the user on 2026-10-13. Land types are the user's confirmed observations."
   ],
   "sites": [
     {
@@ -16,180 +18,234 @@
       "region": "Hot arid",
       "name": "Jaisalmer open scrub",
       "intended": "open desert scrub",
-      "lat": 26.9157,
-      "lon": 70.9083,
+      "lat": 26.908896940521768,
+      "lon": 70.65072955088517,
       "radius_m": 400,
-      "verified": false,
-      "land_type": "",
-      "expect_gate": "",
+      "verified": true,
+      "land_type": "Open arid desert, sandy soil, sparse dry scrub",
+      "expect_gate": "none",
       "expect_warning_contains": "",
-      "expect_plants": [],
-      "expect_ruled_out": [],
+      "expect_plants": [
+        "Khejri",
+        "Babul"
+      ],
+      "expect_ruled_out": [
+        "Teak",
+        "Sal",
+        "Bamboo",
+        "Deodar"
+      ],
       "expect_not_strong": [],
       "status": "pending",
-      "notes": ""
+      "notes": "Coordinates checked by the user on the satellite view (2026-10-13): open desert. The user confirmed 26.908896940521768, 70.65072955088517 as the point to use. Expectations drafted by Claude from general knowledge and accepted by the user ('ok', 2026-10-13) before any run."
     },
     {
       "slug": "ratnagiri",
       "region": "Wet coast",
       "name": "Ratnagiri open laterite",
       "intended": "open laterite or scrub",
-      "lat": 16.9902,
-      "lon": 73.312,
+      "lat": 17.025,
+      "lon": 73.33,
       "radius_m": 400,
-      "verified": false,
-      "land_type": "",
-      "expect_gate": "",
+      "verified": true,
+      "land_type": "Exposed rocky laterite plateau, low patchy scrub, no large trees",
+      "expect_gate": "none",
       "expect_warning_contains": "",
-      "expect_plants": [],
-      "expect_ruled_out": [],
+      "expect_plants": [
+        "Mango",
+        "Jamun"
+      ],
+      "expect_ruled_out": [
+        "Khejri",
+        "Babul"
+      ],
       "expect_not_strong": [],
       "status": "pending",
-      "notes": ""
+      "notes": "Coordinates checked by the user on the satellite view (2026-10-13). Expectations drafted by Claude from general knowledge and accepted by the user ('ok', 2026-10-13) before any run."
     },
     {
       "slug": "shimla",
       "region": "Hills",
       "name": "Shimla slope",
       "intended": "slope outside town, about 2200 m",
-      "lat": 31.1048,
-      "lon": 77.1734,
+      "lat": 31.135,
+      "lon": 77.225,
       "radius_m": 400,
-      "verified": false,
-      "land_type": "",
-      "expect_gate": "",
-      "expect_warning_contains": "",
-      "expect_plants": [],
-      "expect_ruled_out": [],
+      "verified": true,
+      "land_type": "Forested slope with some houses, small-town edge",
+      "expect_gate": "warning",
+      "expect_warning_contains": "built-up",
+      "expect_plants": [
+        "Deodar"
+      ],
+      "expect_ruled_out": [
+        "Teak",
+        "Khejri",
+        "Moringa"
+      ],
       "expect_not_strong": [],
       "status": "pending",
-      "notes": ""
+      "notes": "Coordinates checked by the user on the satellite view (2026-10-13). User: a slope, but with some houses, like a small town, so not a clean forest point. Expect it to differ from the 'intended' land type. Expectations drafted by Claude from general knowledge and accepted by the user ('ok', 2026-10-13) before any run."
     },
     {
       "slug": "varanasi",
       "region": "Gangetic plain",
       "name": "Varanasi farmland",
       "intended": "farmland",
-      "lat": 25.3176,
-      "lon": 82.9739,
+      "lat": 25.32,
+      "lon": 82.85,
       "radius_m": 400,
-      "verified": false,
-      "land_type": "",
-      "expect_gate": "",
-      "expect_warning_contains": "",
-      "expect_plants": [],
-      "expect_ruled_out": [],
+      "verified": true,
+      "land_type": "Flat, actively cultivated crop fields with visible plot boundaries",
+      "expect_gate": "warning",
+      "expect_warning_contains": "cropland",
+      "expect_plants": [
+        "Neem",
+        "Sissoo",
+        "Mango"
+      ],
+      "expect_ruled_out": [
+        "Deodar"
+      ],
       "expect_not_strong": [],
       "status": "pending",
-      "notes": ""
+      "notes": "Coordinates checked by the user on the satellite view (2026-10-13). Expectations drafted by Claude from general knowledge and accepted by the user ('ok', 2026-10-13) before any run."
     },
     {
       "slug": "solapur",
       "region": "Deccan plateau",
       "name": "Solapur open land",
       "intended": "open land with black soil",
-      "lat": 17.6599,
-      "lon": 75.9064,
+      "lat": 17.55,
+      "lon": 75.9,
       "radius_m": 400,
-      "verified": false,
-      "land_type": "",
-      "expect_gate": "",
-      "expect_warning_contains": "",
-      "expect_plants": [],
-      "expect_ruled_out": [],
+      "verified": true,
+      "land_type": "Flat farmland, dark soil, little vertical cover",
+      "expect_gate": "warning",
+      "expect_warning_contains": "cropland",
+      "expect_plants": [
+        "Neem",
+        "Babul",
+        "Ber"
+      ],
+      "expect_ruled_out": [
+        "Deodar",
+        "Sal"
+      ],
       "expect_not_strong": [],
       "status": "pending",
-      "notes": ""
+      "notes": "Coordinates checked by the user on the satellite view (2026-10-13). Expectations drafted by Claude from general knowledge and accepted by the user ('ok', 2026-10-13) before any run."
     },
     {
       "slug": "jagdalpur",
       "region": "Forest belt",
       "name": "Jagdalpur forest",
       "intended": "dense forest (control)",
-      "lat": 19.0748,
-      "lon": 82.008,
+      "lat": 18.877690070696538,
+      "lon": 81.9662936057062,
       "radius_m": 400,
-      "verified": false,
-      "land_type": "",
-      "expect_gate": "",
+      "verified": true,
+      "land_type": "Dense unbroken forest canopy, dead centre of the forest",
+      "expect_gate": "none",
       "expect_warning_contains": "",
-      "expect_plants": [],
-      "expect_ruled_out": [],
+      "expect_plants": [
+        "Sal",
+        "Teak"
+      ],
+      "expect_ruled_out": [
+        "Khejri",
+        "Deodar"
+      ],
       "expect_not_strong": [],
       "status": "pending",
-      "notes": ""
+      "notes": "Coordinates checked by the user on the satellite view (2026-10-13). Moved by the user to the dead centre of the forest (the first point was the outer edge of the canopy). Expectations drafted by Claude from general knowledge and accepted by the user ('ok', 2026-10-13) before any run."
     },
     {
       "slug": "puri",
       "region": "Coast",
       "name": "Puri sandy ground",
       "intended": "sandy open ground",
-      "lat": 19.8135,
-      "lon": 85.8312,
+      "lat": 19.815,
+      "lon": 85.875,
       "radius_m": 400,
-      "verified": false,
-      "land_type": "",
-      "expect_gate": "",
+      "verified": true,
+      "land_type": "Open sandy coastal dunes with low coastal vegetation",
+      "expect_gate": "none",
       "expect_warning_contains": "",
-      "expect_plants": [],
-      "expect_ruled_out": [],
+      "expect_plants": [
+        "Casuarina"
+      ],
+      "expect_ruled_out": [
+        "Deodar"
+      ],
       "expect_not_strong": [],
       "status": "pending",
-      "notes": ""
+      "notes": "Coordinates checked by the user on the satellite view (2026-10-13). Expectations drafted by Claude from general knowledge and accepted by the user ('ok', 2026-10-13) before any run. Judgement call: bare sand, expected none (the gate also warns about bare ground)."
     },
     {
       "slug": "morena-ravines",
       "region": "Degraded land",
       "name": "Chambal ravines",
       "intended": "ravines or a quarry",
-      "lat": 26.495,
-      "lon": 78.0,
+      "lat": 26.685,
+      "lon": 77.935,
       "radius_m": 400,
-      "verified": false,
-      "land_type": "",
-      "expect_gate": "",
+      "verified": true,
+      "land_type": "Eroded barren badlands with deep branching gullies (ravines)",
+      "expect_gate": "none",
       "expect_warning_contains": "",
-      "expect_plants": [],
-      "expect_ruled_out": [],
+      "expect_plants": [
+        "Babul",
+        "Khejri",
+        "Ber"
+      ],
+      "expect_ruled_out": [
+        "Teak",
+        "Deodar"
+      ],
       "expect_not_strong": [],
       "status": "pending",
-      "notes": ""
+      "notes": "Coordinates checked by the user on the satellite view (2026-10-13). Expectations drafted by Claude from general knowledge and accepted by the user ('ok', 2026-10-13) before any run. Judgement call: degraded ravine land, expected none (the gate also warns about bare ground)."
     },
     {
       "slug": "bhopal-lake",
       "region": "Open water",
       "name": "Bhopal Upper Lake",
       "intended": "middle of the lake (control)",
-      "lat": 23.25,
-      "lon": 77.35,
+      "lat": 23.249545700690536,
+      "lon": 77.34386981384519,
       "radius_m": 400,
-      "verified": false,
-      "land_type": "",
-      "expect_gate": "",
+      "verified": true,
+      "land_type": "Open water, middle of the lake",
+      "expect_gate": "blocked",
       "expect_warning_contains": "",
       "expect_plants": [],
       "expect_ruled_out": [],
       "expect_not_strong": [],
       "status": "pending",
-      "notes": ""
+      "notes": "Coordinates checked by the user on the satellite view (2026-10-13). Moved by the user into the middle of the lake (the first point was on the shoreline). Expectations drafted by Claude from general knowledge and accepted by the user ('ok', 2026-10-13) before any run."
     },
     {
       "slug": "leh",
       "region": "Extreme cold",
       "name": "Leh open ground",
       "intended": "open ground, about 3500 m",
-      "lat": 34.1526,
-      "lon": 77.5771,
+      "lat": 34.08,
+      "lon": 77.65,
       "radius_m": 400,
-      "verified": false,
-      "land_type": "",
-      "expect_gate": "",
+      "verified": true,
+      "land_type": "Barren high valley floor, rock and gravel, no trees, about 3500 m",
+      "expect_gate": "none",
       "expect_warning_contains": "",
       "expect_plants": [],
-      "expect_ruled_out": [],
+      "expect_ruled_out": [
+        "Neem",
+        "Teak",
+        "Mango"
+      ],
       "expect_not_strong": [],
       "status": "pending",
-      "notes": ""
+      "notes": "Coordinates checked by the user on the satellite view (2026-10-13). Expectations drafted by Claude from general knowledge and accepted by the user ('ok', 2026-10-13) before any run. Judgement call: barren cold-desert ground, expected none (the gate also warns about bare ground)."
     }
   ]
 }
