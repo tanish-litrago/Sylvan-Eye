@@ -190,6 +190,7 @@ def build_report(rows, run_date):
         f, t = res["facts"], res["tiers"]
         L += [f"### {s['slug']}: {s['name']} ({s['region']})",
               f"- Point {s['lat']}, {s['lon']}, radius {s['radius_m']} m. You saw: {s['land_type']}.",
+              f"- {res['terrain_summary']}" if res.get("terrain_summary") else "- Terrain: not measured",
               f"- Cache: " + (", ".join(f"{a} {b}" for a, b in res["cache"]) or "none"),
               f"- Warnings: " + (" ".join(f["warnings"]) or "none")]
         for x in res["tier_order"]:
