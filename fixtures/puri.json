@@ -1,0 +1,60 @@
+{
+  "env": {
+    "annual_mean_temp_c": 26.8,
+    "annual_rainfall_mm": 1762,
+    "elevation_m": 13.0,
+    "ph": 6.55,
+    "soil_texture": "medium"
+  },
+  "exported_on": "2026-10-14",
+  "site": {
+    "lat": 19.815,
+    "lon": 85.875,
+    "name": "Puri sandy ground",
+    "radius_m": 400,
+    "region": "Coast",
+    "slug": "puri"
+  },
+  "terrain": {
+    "imagery": {
+      "date_range": [
+        "2025-01-01",
+        "2026-01-01"
+      ],
+      "images_used": 85,
+      "source": "Sentinel-2 SR median composite (Earth Engine)"
+    },
+    "land_cover_fractions": {
+      "bare_or_built": 0.02,
+      "dense_vegetation": 0.642,
+      "sparse_vegetation_or_crops": 0.338,
+      "water_or_wet_surface": 0.0
+    },
+    "location": {
+      "lat": 19.815,
+      "lon": 85.875,
+      "radius_m": 400
+    },
+    "seasonality": {
+      "best_swing_year": 2023,
+      "big_swing_by_year": {
+        "2023": 0.732,
+        "2024": 0.686,
+        "2025": 0.637
+      },
+      "big_swing_fraction": 0.637,
+      "big_swing_fraction_best_year": 0.732,
+      "ndvi_dry_p10_mean": 0.388,
+      "ndvi_peak_p90_mean": 0.679,
+      "ndvi_range_mean": 0.291
+    },
+    "terrain": {
+      "elevation_m": 13.0,
+      "slope_deg": 1.83
+    },
+    "vegetation": {
+      "ndvi_mean": 0.559,
+      "ndwi_p90_mean": -0.36
+    }
+  }
+}

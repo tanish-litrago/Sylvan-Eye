@@ -109,6 +109,31 @@ def test_only_named_sites_and_unknown_names():
     assert code == 2 and report is None
 
 
+def test_report_option_writes_to_another_file():
+    tmp = Path(tempfile.mkdtemp())
+    sites_path = tmp / "sites.json"
+    sites_path.write_text(json.dumps({"sites": [base("a")]}), encoding="utf-8")
+    code = rr.main(["--report", str(tmp / "other.md")], sites_path=sites_path, report_path=tmp / "main.md",
+                   fixtures_dir=tmp / "fx", run_live_fn=fake_run_live)
+    assert code == 0 and (tmp / "other.md").exists() and not (tmp / "main.md").exists()
+
+
+def test_regression_harness_statuses():
+    import test_regions as tr
+    import fixtures
+    tmp = Path(tempfile.mkdtemp())
+    for slug, water in (("good", 0.0), ("lake", 0.6), ("lake2", 0.6), ("good2", 0.0), ("pend", 0.0)):
+        fixtures.save_fixture({"slug": slug}, dict(DEMO_ENV), terrain(water), "2026-10-14", folder=tmp)
+    sites = [base("good", status="accepted"), base("lake", status="accepted"),
+             base("lake2", status="known_issue"), base("good2", status="known_issue"),
+             base("nofixture", status="accepted"), base("pend", status="pending")]
+    res = {r["slug"]: r["outcome"] for r in tr.evaluate(sites, tmp)}
+    assert res["good"] == "ok" and res["lake"] == "FAIL"                  # accepted: must match
+    assert res["lake2"] == "known issue still present"                    # known issue: miss persists
+    assert res["good2"].startswith("FAIL")                                # known issue no longer reproduces
+    assert res["nofixture"] == "SKIPPED" and res["pend"].startswith("pending")
+
+
 if __name__ == "__main__":
     test_name_matching()
     test_unready_sites_are_refused_with_reasons()
@@ -116,4 +141,6 @@ if __name__ == "__main__":
     test_match_mismatch_error_and_report()
     test_blocked_site_expectations_about_plants_fail_honestly()
     test_only_named_sites_and_unknown_names()
+    test_report_option_writes_to_another_file()
+    test_regression_harness_statuses()
     print("all run_regions tests passed")

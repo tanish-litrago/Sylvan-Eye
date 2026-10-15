@@ -1,0 +1,60 @@
+{
+  "env": {
+    "annual_mean_temp_c": 25.1,
+    "annual_rainfall_mm": 1360,
+    "elevation_m": 506,
+    "ph": null,
+    "soil_texture": null
+  },
+  "exported_on": "2026-10-15",
+  "site": {
+    "lat": 23.249545700690536,
+    "lon": 77.34386981384519,
+    "name": "Bhopal Upper Lake",
+    "radius_m": 400,
+    "region": "Open water",
+    "slug": "bhopal-lake"
+  },
+  "terrain": {
+    "imagery": {
+      "date_range": [
+        "2025-01-01",
+        "2026-01-01"
+      ],
+      "images_used": 39,
+      "source": "Sentinel-2 SR median composite (Earth Engine)"
+    },
+    "land_cover_fractions": {
+      "bare_or_built": 0.0,
+      "dense_vegetation": 0.0,
+      "sparse_vegetation_or_crops": 0.0,
+      "water_or_wet_surface": 1.0
+    },
+    "location": {
+      "lat": 23.249545700690536,
+      "lon": 77.34386981384519,
+      "radius_m": 400
+    },
+    "seasonality": {
+      "best_swing_year": 2025,
+      "big_swing_by_year": {
+        "2023": 0.961,
+        "2024": 0.625,
+        "2025": 0.982
+      },
+      "big_swing_fraction": 0.982,
+      "big_swing_fraction_best_year": 0.982,
+      "ndvi_dry_p10_mean": -0.233,
+      "ndvi_peak_p90_mean": 0.249,
+      "ndvi_range_mean": 0.482
+    },
+    "terrain": {
+      "elevation_m": 506,
+      "slope_deg": 0
+    },
+    "vegetation": {
+      "ndvi_mean": -0.071,
+      "ndwi_p90_mean": 0.446
+    }
+  }
+}

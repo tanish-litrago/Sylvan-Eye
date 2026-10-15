@@ -1,0 +1,60 @@
+{
+  "env": {
+    "annual_mean_temp_c": 24.7,
+    "annual_rainfall_mm": 1705,
+    "elevation_m": 558.8,
+    "ph": 5.88,
+    "soil_texture": "medium"
+  },
+  "exported_on": "2026-10-14",
+  "site": {
+    "lat": 18.877690070696538,
+    "lon": 81.9662936057062,
+    "name": "Jagdalpur forest",
+    "radius_m": 400,
+    "region": "Forest belt",
+    "slug": "jagdalpur"
+  },
+  "terrain": {
+    "imagery": {
+      "date_range": [
+        "2025-01-01",
+        "2026-01-01"
+      ],
+      "images_used": 79,
+      "source": "Sentinel-2 SR median composite (Earth Engine)"
+    },
+    "land_cover_fractions": {
+      "bare_or_built": 0.0,
+      "dense_vegetation": 1.0,
+      "sparse_vegetation_or_crops": 0.0,
+      "water_or_wet_surface": 0.0
+    },
+    "location": {
+      "lat": 18.877690070696538,
+      "lon": 81.9662936057062,
+      "radius_m": 400
+    },
+    "seasonality": {
+      "best_swing_year": 2024,
+      "big_swing_by_year": {
+        "2023": 0.821,
+        "2024": 0.854,
+        "2025": 0.132
+      },
+      "big_swing_fraction": 0.132,
+      "big_swing_fraction_best_year": 0.854,
+      "ndvi_dry_p10_mean": 0.595,
+      "ndvi_peak_p90_mean": 0.816,
+      "ndvi_range_mean": 0.221
+    },
+    "terrain": {
+      "elevation_m": 558.8,
+      "slope_deg": 5.65
+    },
+    "vegetation": {
+      "ndvi_mean": 0.698,
+      "ndwi_p90_mean": -0.543
+    }
+  }
+}

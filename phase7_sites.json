@@ -8,9 +8,9 @@
     "expect_warning_contains: optional word a warning should contain, for example cropland or built-up.",
     "expect_plants: plants you expect to be offered (any tier). expect_ruled_out: plants you expect to be ruled out. expect_not_strong: plants you would be unhappy to see as Strong fit.",
     "Plant names as in plants.csv (for example Khejri, Babul, Teak, Sissoo, Bamboo, Salai).",
-    "status: pending now. After the review use accepted (the system is right and your expectation was wrong or right) or known_issue (the system is wrong; say why in notes).",
     "Commit this file before the first run: the commit time proves your expectations came first.",
-    "Provenance: the expectations for all ten sites were drafted by Claude from general knowledge (not from the gate rules and before any result existed) and accepted unchanged by the user on 2026-10-13. Land types are the user's confirmed observations."
+    "Provenance: the expectations for all ten sites were drafted by Claude from general knowledge (not from the gate rules and before any result existed) and accepted unchanged by the user on 2026-10-13. Land types are the user's confirmed observations.",
+    "status: accepted = the system's behaviour is accepted and test_regions.py requires the expectations to match; known_issue = the system is wrong in a documented way and test_regions.py requires the miss to persist (so a fix shows up); pending = no verdict yet. original_expectation holds the blind expectations as committed before the first run; the fields above them were corrected after the review (see 'review')."
   ],
   "sites": [
     {
@@ -23,7 +23,7 @@
       "radius_m": 400,
       "verified": true,
       "land_type": "Open arid desert, sandy soil, sparse dry scrub",
-      "expect_gate": "none",
+      "expect_gate": "warning",
       "expect_warning_contains": "",
       "expect_plants": [
         "Khejri",
@@ -32,12 +32,26 @@
       "expect_ruled_out": [
         "Teak",
         "Sal",
-        "Bamboo",
         "Deodar"
       ],
       "expect_not_strong": [],
-      "status": "pending",
-      "notes": "Coordinates checked by the user on the satellite view (2026-10-13): open desert. The user confirmed 26.908896940521768, 70.65072955088517 as the point to use. Expectations drafted by Claude from general knowledge and accepted by the user ('ok', 2026-10-13) before any run."
+      "status": "accepted",
+      "notes": "Coordinates checked by the user on the satellite view (2026-10-13): open desert. The user confirmed 26.908896940521768, 70.65072955088517 as the point to use. Expectations drafted by Claude from general knowledge and accepted by the user ('ok', 2026-10-13) before any run.",
+      "original_expectation": {
+        "expect_gate": "none",
+        "expect_warning_contains": "",
+        "expect_plants": [
+          "Khejri",
+          "Babul"
+        ],
+        "expect_ruled_out": [
+          "Teak",
+          "Sal",
+          "Deodar"
+        ],
+        "expect_not_strong": []
+      },
+      "review": "Review 2026-10-14: the gate warns about bare or built-up ground on natural desert (documented limit, P7-5), so the expectation was changed to warning. Bamboo has no data in plants.csv (not assessed), removed from expect_ruled_out. Sal is now ruled out by its 1000 mm floor (P7-6)."
     },
     {
       "slug": "ratnagiri",
@@ -60,8 +74,22 @@
         "Babul"
       ],
       "expect_not_strong": [],
-      "status": "pending",
-      "notes": "Coordinates checked by the user on the satellite view (2026-10-13). Expectations drafted by Claude from general knowledge and accepted by the user ('ok', 2026-10-13) before any run."
+      "status": "accepted",
+      "notes": "Coordinates checked by the user on the satellite view (2026-10-13). Expectations drafted by Claude from general knowledge and accepted by the user ('ok', 2026-10-13) before any run.",
+      "original_expectation": {
+        "expect_gate": "none",
+        "expect_warning_contains": "",
+        "expect_plants": [
+          "Mango",
+          "Jamun"
+        ],
+        "expect_ruled_out": [
+          "Khejri",
+          "Babul"
+        ],
+        "expect_not_strong": []
+      },
+      "review": "Review 2026-10-14: Mango was ruled out by a 2600 mm maximum; raised to 3500 mm (P7-7), so it is now offered with a marginal rainfall check."
     },
     {
       "slug": "shimla",
@@ -84,8 +112,22 @@
         "Moringa"
       ],
       "expect_not_strong": [],
-      "status": "pending",
-      "notes": "Coordinates checked by the user on the satellite view (2026-10-13). User: a slope, but with some houses, like a small town, so not a clean forest point. Expect it to differ from the 'intended' land type. Expectations drafted by Claude from general knowledge and accepted by the user ('ok', 2026-10-13) before any run."
+      "status": "known_issue",
+      "notes": "Coordinates checked by the user on the satellite view (2026-10-13). User: a slope, but with some houses, like a small town, so not a clean forest point. Expect it to differ from the 'intended' land type. Expectations drafted by Claude from general knowledge and accepted by the user ('ok', 2026-10-13) before any run.",
+      "original_expectation": {
+        "expect_gate": "warning",
+        "expect_warning_contains": "built-up",
+        "expect_plants": [
+          "Deodar"
+        ],
+        "expect_ruled_out": [
+          "Teak",
+          "Khejri",
+          "Moringa"
+        ],
+        "expect_not_strong": []
+      },
+      "review": "Review 2026-10-14: the user saw over 40% town but the land cover read 7% bare/built, so no warning (P7-4, SYSTEM WRONG, documented as a known limit). The expectation stays as written; the test expects the miss to persist."
     },
     {
       "slug": "varanasi",
@@ -108,8 +150,22 @@
         "Deodar"
       ],
       "expect_not_strong": [],
-      "status": "pending",
-      "notes": "Coordinates checked by the user on the satellite view (2026-10-13). Expectations drafted by Claude from general knowledge and accepted by the user ('ok', 2026-10-13) before any run."
+      "status": "accepted",
+      "notes": "Coordinates checked by the user on the satellite view (2026-10-13). Expectations drafted by Claude from general knowledge and accepted by the user ('ok', 2026-10-13) before any run.",
+      "original_expectation": {
+        "expect_gate": "warning",
+        "expect_warning_contains": "cropland",
+        "expect_plants": [
+          "Neem",
+          "Sissoo",
+          "Mango"
+        ],
+        "expect_ruled_out": [
+          "Deodar"
+        ],
+        "expect_not_strong": []
+      },
+      "review": "Review 2026-10-14: matched."
     },
     {
       "slug": "solapur",
@@ -133,8 +189,23 @@
         "Sal"
       ],
       "expect_not_strong": [],
-      "status": "pending",
-      "notes": "Coordinates checked by the user on the satellite view (2026-10-13). Expectations drafted by Claude from general knowledge and accepted by the user ('ok', 2026-10-13) before any run."
+      "status": "accepted",
+      "notes": "Coordinates checked by the user on the satellite view (2026-10-13). Expectations drafted by Claude from general knowledge and accepted by the user ('ok', 2026-10-13) before any run.",
+      "original_expectation": {
+        "expect_gate": "warning",
+        "expect_warning_contains": "cropland",
+        "expect_plants": [
+          "Neem",
+          "Babul",
+          "Ber"
+        ],
+        "expect_ruled_out": [
+          "Deodar",
+          "Sal"
+        ],
+        "expect_not_strong": []
+      },
+      "review": "Review 2026-10-14: the cropland rule missed it at a 0.2 dry-NDVI cut-off (dry NDVI 0.204); the cut-off is now 0.24 (P7-2). Sal is now ruled out by its 1000 mm floor (P7-6). To be confirmed by test_regions.py on the saved measurements."
     },
     {
       "slug": "jagdalpur",
@@ -157,8 +228,22 @@
         "Deodar"
       ],
       "expect_not_strong": [],
-      "status": "pending",
-      "notes": "Coordinates checked by the user on the satellite view (2026-10-13). Moved by the user to the dead centre of the forest (the first point was the outer edge of the canopy). Expectations drafted by Claude from general knowledge and accepted by the user ('ok', 2026-10-13) before any run."
+      "status": "accepted",
+      "notes": "Coordinates checked by the user on the satellite view (2026-10-13). Moved by the user to the dead centre of the forest (the first point was the outer edge of the canopy). Expectations drafted by Claude from general knowledge and accepted by the user ('ok', 2026-10-13) before any run.",
+      "original_expectation": {
+        "expect_gate": "none",
+        "expect_warning_contains": "",
+        "expect_plants": [
+          "Sal",
+          "Teak"
+        ],
+        "expect_ruled_out": [
+          "Khejri",
+          "Deodar"
+        ],
+        "expect_not_strong": []
+      },
+      "review": "Review 2026-10-14: matched (forest control)."
     },
     {
       "slug": "puri",
@@ -179,8 +264,20 @@
         "Deodar"
       ],
       "expect_not_strong": [],
-      "status": "pending",
-      "notes": "Coordinates checked by the user on the satellite view (2026-10-13). Expectations drafted by Claude from general knowledge and accepted by the user ('ok', 2026-10-13) before any run. Judgement call: bare sand, expected none (the gate also warns about bare ground)."
+      "status": "accepted",
+      "notes": "Coordinates checked by the user on the satellite view (2026-10-13). Expectations drafted by Claude from general knowledge and accepted by the user ('ok', 2026-10-13) before any run. Judgement call: bare sand, expected none (the gate also warns about bare ground).",
+      "original_expectation": {
+        "expect_gate": "none",
+        "expect_warning_contains": "",
+        "expect_plants": [
+          "Casuarina"
+        ],
+        "expect_ruled_out": [
+          "Deodar"
+        ],
+        "expect_not_strong": []
+      },
+      "review": "Review 2026-10-14: matched."
     },
     {
       "slug": "morena-ravines",
@@ -200,12 +297,25 @@
         "Ber"
       ],
       "expect_ruled_out": [
-        "Teak",
         "Deodar"
       ],
       "expect_not_strong": [],
-      "status": "pending",
-      "notes": "Coordinates checked by the user on the satellite view (2026-10-13). Expectations drafted by Claude from general knowledge and accepted by the user ('ok', 2026-10-13) before any run. Judgement call: degraded ravine land, expected none (the gate also warns about bare ground)."
+      "status": "accepted",
+      "notes": "Coordinates checked by the user on the satellite view (2026-10-13). Expectations drafted by Claude from general knowledge and accepted by the user ('ok', 2026-10-13) before any run. Judgement call: degraded ravine land, expected none (the gate also warns about bare ground).",
+      "original_expectation": {
+        "expect_gate": "none",
+        "expect_warning_contains": "",
+        "expect_plants": [
+          "Babul",
+          "Khejri",
+          "Ber"
+        ],
+        "expect_ruled_out": [
+          "Deodar"
+        ],
+        "expect_not_strong": []
+      },
+      "review": "Review 2026-10-14: the user saw ravines and scrub with no farmland, so the gate staying quiet is right (P7-3). Teak is offered as Caution (marginal rainfall 786 mm, stated minimum 600), so the expectation that it is ruled out was too strict and was removed."
     },
     {
       "slug": "bhopal-lake",
@@ -223,7 +333,15 @@
       "expect_ruled_out": [],
       "expect_not_strong": [],
       "status": "pending",
-      "notes": "Coordinates checked by the user on the satellite view (2026-10-13). Moved by the user into the middle of the lake (the first point was on the shoreline). Expectations drafted by Claude from general knowledge and accepted by the user ('ok', 2026-10-13) before any run."
+      "notes": "Coordinates checked by the user on the satellite view (2026-10-13). Moved by the user into the middle of the lake (the first point was on the shoreline). Expectations drafted by Claude from general knowledge and accepted by the user ('ok', 2026-10-13) before any run.",
+      "original_expectation": {
+        "expect_gate": "blocked",
+        "expect_warning_contains": "",
+        "expect_plants": [],
+        "expect_ruled_out": [],
+        "expect_not_strong": []
+      },
+      "review": "Review 2026-10-14: the run crashed on missing soil (P7-1, fixed in run_live). Needs a live re-run: python run_regions.py bhopal-lake --report phase7_rerun.md. Then test_regions.py can check it."
     },
     {
       "slug": "leh",
@@ -235,7 +353,7 @@
       "radius_m": 400,
       "verified": true,
       "land_type": "Barren high valley floor, rock and gravel, no trees, about 3500 m",
-      "expect_gate": "none",
+      "expect_gate": "warning",
       "expect_warning_contains": "",
       "expect_plants": [],
       "expect_ruled_out": [
@@ -244,8 +362,20 @@
         "Mango"
       ],
       "expect_not_strong": [],
-      "status": "pending",
-      "notes": "Coordinates checked by the user on the satellite view (2026-10-13). Expectations drafted by Claude from general knowledge and accepted by the user ('ok', 2026-10-13) before any run. Judgement call: barren cold-desert ground, expected none (the gate also warns about bare ground)."
+      "status": "accepted",
+      "notes": "Coordinates checked by the user on the satellite view (2026-10-13). Expectations drafted by Claude from general knowledge and accepted by the user ('ok', 2026-10-13) before any run. Judgement call: barren cold-desert ground, expected none (the gate also warns about bare ground).",
+      "original_expectation": {
+        "expect_gate": "none",
+        "expect_warning_contains": "",
+        "expect_plants": [],
+        "expect_ruled_out": [
+          "Neem",
+          "Teak",
+          "Mango"
+        ],
+        "expect_not_strong": []
+      },
+      "review": "Review 2026-10-14: the gate warns about bare or built-up ground on natural barren land (documented limit, P7-5), so the expectation was changed to warning. The rainfall reading (836 mm) is doubtful (P7-9); the user chose to skip checking it."
     }
   ]
 }

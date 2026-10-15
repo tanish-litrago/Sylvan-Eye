@@ -1,0 +1,60 @@
+{
+  "env": {
+    "annual_mean_temp_c": 25.4,
+    "annual_rainfall_mm": 786,
+    "elevation_m": 161.0,
+    "ph": 7.79,
+    "soil_texture": "medium"
+  },
+  "exported_on": "2026-10-14",
+  "site": {
+    "lat": 26.685,
+    "lon": 77.935,
+    "name": "Chambal ravines",
+    "radius_m": 400,
+    "region": "Degraded land",
+    "slug": "morena-ravines"
+  },
+  "terrain": {
+    "imagery": {
+      "date_range": [
+        "2025-01-01",
+        "2026-01-01"
+      ],
+      "images_used": 85,
+      "source": "Sentinel-2 SR median composite (Earth Engine)"
+    },
+    "land_cover_fractions": {
+      "bare_or_built": 0.03,
+      "dense_vegetation": 0.382,
+      "sparse_vegetation_or_crops": 0.588,
+      "water_or_wet_surface": 0.0
+    },
+    "location": {
+      "lat": 26.685,
+      "lon": 77.935,
+      "radius_m": 400
+    },
+    "seasonality": {
+      "best_swing_year": 2025,
+      "big_swing_by_year": {
+        "2023": 0.891,
+        "2024": 0.899,
+        "2025": 0.906
+      },
+      "big_swing_fraction": 0.906,
+      "big_swing_fraction_best_year": 0.906,
+      "ndvi_dry_p10_mean": 0.275,
+      "ndvi_peak_p90_mean": 0.641,
+      "ndvi_range_mean": 0.366
+    },
+    "terrain": {
+      "elevation_m": 161.0,
+      "slope_deg": 3.19
+    },
+    "vegetation": {
+      "ndvi_mean": 0.455,
+      "ndwi_p90_mean": -0.354
+    }
+  }
+}

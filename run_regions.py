@@ -210,6 +210,7 @@ def main(argv=None, sites_path=SITES_FILE, report_path=REPORT_FILE, fixtures_dir
     ap.add_argument("slugs", nargs="*", help="only these sites")
     ap.add_argument("--refresh", action="store_true", help="measure again, ignore the cache")
     ap.add_argument("--include-unverified", action="store_true", help="also run sites not marked verified")
+    ap.add_argument("--report", help="write the report here instead of phase7_report.md (use it when re-running a few sites)")
     args = ap.parse_args(argv)
 
     sites = load_sites(sites_path)
@@ -243,6 +244,7 @@ def main(argv=None, sites_path=SITES_FILE, report_path=REPORT_FILE, fixtures_dir
             print("ERROR:", row["error"])
         rows.append(row)
 
+    report_path = args.report or report_path
     Path(report_path).write_text(build_report(rows, date.today().isoformat()), encoding="utf-8")
     print(f"\nReport written to {report_path}")
     return 1 if any(r["error"] for r in rows) else 0

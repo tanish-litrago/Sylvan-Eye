@@ -1,0 +1,60 @@
+{
+  "env": {
+    "annual_mean_temp_c": 27.6,
+    "annual_rainfall_mm": 928,
+    "elevation_m": 443.2,
+    "ph": 7.45,
+    "soil_texture": "heavy"
+  },
+  "exported_on": "2026-10-14",
+  "site": {
+    "lat": 17.55,
+    "lon": 75.9,
+    "name": "Solapur open land",
+    "radius_m": 400,
+    "region": "Deccan plateau",
+    "slug": "solapur"
+  },
+  "terrain": {
+    "imagery": {
+      "date_range": [
+        "2025-01-01",
+        "2026-01-01"
+      ],
+      "images_used": 37,
+      "source": "Sentinel-2 SR median composite (Earth Engine)"
+    },
+    "land_cover_fractions": {
+      "bare_or_built": 0.21,
+      "dense_vegetation": 0.067,
+      "sparse_vegetation_or_crops": 0.723,
+      "water_or_wet_surface": 0.0
+    },
+    "location": {
+      "lat": 17.55,
+      "lon": 75.9,
+      "radius_m": 400
+    },
+    "seasonality": {
+      "best_swing_year": 2023,
+      "big_swing_by_year": {
+        "2023": 0.921,
+        "2024": 0.89,
+        "2025": 0.731
+      },
+      "big_swing_fraction": 0.731,
+      "big_swing_fraction_best_year": 0.921,
+      "ndvi_dry_p10_mean": 0.204,
+      "ndvi_peak_p90_mean": 0.552,
+      "ndvi_range_mean": 0.348
+    },
+    "terrain": {
+      "elevation_m": 443.2,
+      "slope_deg": 2.64
+    },
+    "vegetation": {
+      "ndvi_mean": 0.299,
+      "ndwi_p90_mean": -0.317
+    }
+  }
+}
