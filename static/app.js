@@ -260,7 +260,7 @@ function renderConditions(env) {
     if (env[pair[0]] === undefined) { return; }
     var item = el("div", "cond");
     item.appendChild(el("dt", "", pair[1]));
-    item.appendChild(el("dd", "", String(env[pair[0]])));
+    item.appendChild(el("dd", "", env[pair[0]] === null ? "no value" : String(env[pair[0]])));
     dl.appendChild(item);
   });
   s.appendChild(dl);

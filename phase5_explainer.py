@@ -25,6 +25,7 @@ Run:
 
 import csv
 import json
+import os
 import re
 import sys
 
@@ -33,7 +34,7 @@ import requests
 from phase4_matcher import (DEMO_ENV, PLANTS_CSV, cache_flags, check_eligibility, match_plants,
                             parse_radius, print_cache_line, run_live)
 
-OLLAMA_URL = "http://localhost:11434/api/chat"
+OLLAMA_URL = os.environ.get("SYLVAN_OLLAMA_URL") or "http://localhost:11434/api/chat"   # Docker sets it
 OLLAMA_MODEL = "gemma4:e4b"   # change here or pass --model
 TOP_N = 8                     # plants shown to the explainer
 MAX_RETRIES = 1               # extra attempts after a rejected LLM answer
@@ -42,6 +43,11 @@ LIMITS = [
     "Soil pH and texture come from a modelled 250 m dataset, and rainfall and temperature "
     "come from reanalysis data. Confirm with a local soil test before planting.",
     "Plants with equal scores are not ranked against each other; the data cannot separate them.",
+    "The built-up warning relies on satellite land cover, which can miss houses and roads on "
+    "wooded hill slopes. In a hill town, no built-up warning does not mean the ground is free to plant.",
+    "Many plants have no stated hard limit for rainfall, temperature or pH in the plant database, so in "
+    "extreme climates they can be offered with a 'poor' check instead of being ruled out. Read the "
+    "checks on each plant, not only its group.",
 ]
 
 

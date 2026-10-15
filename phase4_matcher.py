@@ -62,7 +62,9 @@ GATE_WATER_BLOCK = 0.5      # share water/wet surface at or above this -> do not
 GATE_WATER_WARN = 0.2       # share at or above this (but below the block level) -> warn
 GATE_BUILT_WARN = 0.4       # share bare-or-built at or above this -> warn
 GATE_SWING_WARN = 0.4       # big seasonal NDVI swing share, in at least 2 years ...
-GATE_DRY_FLOOR_MAX = 0.2    # ... with a dry-season NDVI floor below this -> looks like cropland
+GATE_DRY_FLOOR_MAX = 0.24   # ... with a dry-season NDVI floor below this -> looks like cropland
+                            # (0.2 until 2026-10-14; Solapur farmland sits at 0.204. 0.24 is the midpoint of the
+                            # gap between known cropland, up to 0.204, and the next site, 0.275: see HANDOFF P7-2)
 GATE_NEVER_GREEN_PEAK = 0.15  # peak NDVI below this -> never greens up
 
 
@@ -361,21 +363,30 @@ def run_live(lat, lon, radius_m=DEFAULT_RADIUS, use_cache=True, refresh=False):
         store, make_key("terrain", lat, lon, radius_m, terrain_version), TERRAIN_TTL,
         lambda: phase2_terrain_extraction.get_terrain_data(lat, lon, radius_m=radius_m), refresh)
     CACHE_LOG.append(("terrain", status))
-    soil_all, status = cached(
-        store, make_key("soil", lat, lon, version=soil_version), SOIL_TTL,
-        lambda: phase1_data_pipeline.get_soil_data(lat, lon), refresh)
+    try:
+        soil_all, status = cached(
+            store, make_key("soil", lat, lon, version=soil_version), SOIL_TTL,
+            lambda: phase1_data_pipeline.get_soil_data(lat, lon), refresh)
+    except RuntimeError:
+        # Open water has no soil, so every soil source answers "no values". If the terrain says
+        # the gate BLOCKS this place, the blocked answer is what the user needs, not a crash
+        # (Phase 7, Bhopal lake). On land that is not blocked a soil failure is still an error.
+        if not check_eligibility(terrain)[0]:
+            raise
+        soil_all, status = None, "skipped (blocked site)"
     CACHE_LOG.append(("soil", status))
     climate, status = cached(
         store, make_key("climate", lat, lon, version=climate_version, extra=f"{START_YEAR}-{END_YEAR}"),
         CLIMATE_TTL, lambda: phase4_inputs.get_climate_normals(lat, lon), refresh)
     CACHE_LOG.append(("climate", status))
 
-    soil = soil_all["surface_soil"]
+    soil = soil_all["surface_soil"] if soil_all else None      # None only for a blocked site
     env = {
         "annual_rainfall_mm": climate["annual_rainfall_mm"],
         "annual_mean_temp_c": climate["annual_mean_temp_c"],
-        "ph": soil["ph"]["value"],
-        "soil_texture": classify_soil_texture(soil["clay"]["value"], soil["sand"]["value"]),
+        "ph": soil["ph"]["value"] if soil else None,
+        "soil_texture": (classify_soil_texture(soil["clay"]["value"], soil["sand"]["value"])
+                         if soil else None),
         "elevation_m": terrain["terrain"]["elevation_m"],
     }
     return env, terrain
