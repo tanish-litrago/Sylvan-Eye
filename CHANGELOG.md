@@ -1,5 +1,40 @@
 # Changelog
 
+## v1.1.0 - 2026-10-18
+
+Docker, built in three layers: the app, Postgres as the cache, and Redis for job records. **Rules decide; the language model only explains, and it is off by default** (unchanged; the claim guard was not touched). Without Docker everything works as in v1.0.0.
+
+### What is new
+
+- **App container** (`Dockerfile`, `docker-compose.yml`): runs as a non-root user. Your existing Earth Engine login folder is mounted **read-only** (path in a git-ignored `.env`, see `.env.example`); credentials never go into the image or the repo. Ollama stays on your computer and the container reaches it at `host.docker.internal` (`SYLVAN_OLLAMA_URL`).
+- **Postgres as the cache:** a `db` service with a healthcheck; the app waits for it. The password is set once in `.env` (`POSTGRES_PASSWORD`, letters and digits only) and is never written in the compose file. A new volume starts with an empty cache, so each place takes 1-2 minutes the first time.
+- **Redis for job records only:** `jobstore.py` keeps the job records (state, result, error) in memory (default) or in Redis (`SYLVAN_JOBS=redis`, `SYLVAN_REDIS_URL`); records expire after one hour. The work still runs in threads inside the app; no worker process.
+- **A job cut off by a server restart is reported as failed** ("The server was restarted while this job was running. Run it again.") instead of hanging. A job whose thread died without saving its result is reported failed too.
+- **Job store down:** the server answers 503 and the page says "The job store (Redis) is not available. Try again in a moment." (it retries a few polls first, so a short blip recovers); a job the server no longer knows says so at once. A real network failure still says "Lost contact with the server".
+- **Safety rules, checked by `test_docker_files.py`:** page published on `127.0.0.1` only; Postgres and Redis publish no port; non-root user; `.dockerignore` excludes `.env`, `*.db`, `venv/` and `.git`; no password or key in `docker-compose.yml`.
+
+### Tested
+
+- All test files pass, including the new `test_jobstore.py` (both stores, the failed-job rules, expiry) and `test_docker_files.py`. The job tests also pass against a real Redis.
+- Run on Windows with Docker Desktop: the three services come up healthy, a new place runs with Earth Engine from inside the container, the cache survives `docker compose down` and `up`, the Redis tests pass inside the Docker network, and restarting the app during a running analysis made the page report the failed job; running it again worked.
+- The language-model button works from inside the container (Ollama on the host).
+- The page's job-store messages were checked with a stubbed server in Node and by `test_app.py` (503 routes, wording present); not yet seen in a browser.
+
+### Known limits
+
+- The fact sheet used by the optional model is kept in the app's memory only, so after a restart the button on an old analysis asks you to run the place again.
+- Redis has no password and saves nothing to disk; it is reachable only inside the Docker network. If Redis restarts, the job records are lost.
+- One app process is assumed.
+- The Postgres password is applied only when the volume is first created; changing it later needs `docker compose down -v`, which deletes the cache.
+- If Ollama cannot be reached from the container, the fix is `OLLAMA_HOST=0.0.0.0` on your computer, which opens Ollama to your local network.
+- Not done: `cap_drop`, a read-only root filesystem, a Redis password.
+- The v1.0.0 limits below still apply.
+
+### Next
+
+- v1.2.0: data you can trust (sources for the missing plant limits, rainfall check).
+- v2.0.0: better signals and wider testing (building footprints, more regions, map input).
+
 ## v1.0.0 - 2026-10-17
 
 First complete version of Sylvan Eye: give it a location and it tells you which trees could be planted there, why, and what the data cannot tell you. **Rules decide; the language model only explains, and it is off by default.**

@@ -16,6 +16,21 @@ var MAX_FAILED_POLLS = 3; // consecutive network failures before giving up
 
 var MAX_LLM_WAIT_S = 1200; // stop waiting for the local model after 20 minutes
 
+// What the page says when the job store (Redis) is the problem. The server answers 503 when the
+// store is down and 404 when it does not know the job id (expired, or the store lost its records).
+var MSG_STORE_DOWN = "The job store (Redis) is not available. Try again in a moment.";
+var MSG_JOB_GONE = "The server no longer knows this job (it expired, or the job store was restarted). Run it again.";
+var MSG_LOST = "Lost contact with the server. Is it still running?";
+
+// What a failed answer to GET /jobs/{id} means. 404: the job is gone, so waiting will not help.
+// 503: the store is down, which may pass, so polling goes on a few times before giving up.
+function pollError(r) {
+  var err = new Error("status " + r.status);
+  if (r.status === 404) { err.fatal = true; err.shown = MSG_JOB_GONE; }
+  if (r.status === 503) { err.shown = MSG_STORE_DOWN; }
+  return err;
+}
+
 function $(id) { return document.getElementById(id); }
 
 // Local language models the server offers (step 6). Empty means the controls are not drawn.
@@ -127,6 +142,7 @@ function startRun(body) {
   })
     .then(function (r) {
       if (r.status === 422) { throw new Error("The server rejected those values (check the coordinates and radius)."); }
+      if (r.status === 503) { throw new Error(MSG_STORE_DOWN); }
       if (!r.ok) { throw new Error("The server answered " + r.status + "."); }
       return r.json();
     })
@@ -141,7 +157,7 @@ function poll(jobId, run, startedAt, failedInARow) {
 
   fetch("/jobs/" + jobId)
     .then(function (r) {
-      if (!r.ok) { throw new Error("status " + r.status); }
+      if (!r.ok) { throw pollError(r); }
       return r.json();
     })
     .then(function (job) {
@@ -152,10 +168,11 @@ function poll(jobId, run, startedAt, failedInARow) {
       setStatus(job.stage, secs);
       setTimeout(function () { poll(jobId, run, startedAt, 0); }, POLL_MS);
     })
-    .catch(function () {
+    .catch(function (err) {
       if (run !== currentRun) { return; }
+      if (err && err.fatal) { return fail(run, err.shown); }
       if (failedInARow + 1 >= MAX_FAILED_POLLS) {
-        return fail(run, "Lost contact with the server. Is it still running?");
+        return fail(run, (err && err.shown) || MSG_LOST);
       }
       setTimeout(function () { poll(jobId, run, startedAt, failedInARow + 1); }, POLL_MS);
     });
@@ -182,16 +199,22 @@ function el(tag, className, text) {
   return e;
 }
 
-var VERDICT_WORDS = { good: "good", within_limits: "within limits", marginal: "marginal",
-                      poor: "poor", skipped: "no data", ok: "ok" };
-var VERDICT_CLASS = { good: "chip-ok", within_limits: "chip-ok", ok: "chip-ok",
-                      marginal: "chip-marginal", poor: "chip-poor", skipped: "chip-nodata" };
-var FACTOR_LABELS = { rainfall: "Rainfall", temperature: "Temperature", pH: "pH",
-                      texture: "Texture", elevation: "Elevation" };
+var VERDICT_WORDS = {
+  good: "good", within_limits: "within limits", marginal: "marginal",
+  poor: "poor", skipped: "no data", ok: "ok"
+};
+var VERDICT_CLASS = {
+  good: "chip-ok", within_limits: "chip-ok", ok: "chip-ok",
+  marginal: "chip-marginal", poor: "chip-poor", skipped: "chip-nodata"
+};
+var FACTOR_LABELS = {
+  rainfall: "Rainfall", temperature: "Temperature", pH: "pH",
+  texture: "Texture", elevation: "Elevation"
+};
 var ENV_LABELS = [["annual_rainfall_mm", "Rainfall (mm a year)"],
-                  ["annual_mean_temp_c", "Mean temperature (C)"],
-                  ["ph", "Soil pH"], ["soil_texture", "Soil texture"],
-                  ["elevation_m", "Elevation (m)"]];
+["annual_mean_temp_c", "Mean temperature (C)"],
+["ph", "Soil pH"], ["soil_texture", "Soil texture"],
+["elevation_m", "Elevation (m)"]];
 
 function renderResults(r) {
   var root = $("results");
@@ -236,7 +259,7 @@ function renderBanner(r) {
   b.appendChild(el("p", "", sub));
   if (!r.location.demo) {
     b.appendChild(el("p", "banner-loc", "Location " + r.location.lat + ", " + r.location.lon +
-                      "  |  radius used: " + r.location.radius_m + " m"));
+      "  |  radius used: " + r.location.radius_m + " m"));
   }
   return b;
 }
@@ -297,7 +320,7 @@ function renderPlant(p) {
     var c = p.checks[factor];
     var word = VERDICT_WORDS[c.result] || c.result;
     chips.appendChild(el("span", "chip " + (VERDICT_CLASS[c.result] || "chip-nodata"),
-                         (FACTOR_LABELS[factor] || factor) + ": " + word));
+      (FACTOR_LABELS[factor] || factor) + ": " + word));
   });
   p.flags.forEach(function (flag) { chips.appendChild(el("span", "chip chip-flag", "Flag: " + flag)); });
   sum.appendChild(chips);
@@ -307,7 +330,7 @@ function renderPlant(p) {
   Object.keys(p.checks).forEach(function (factor) {
     var c = p.checks[factor];
     ul.appendChild(el("li", "", (FACTOR_LABELS[factor] || factor) + ", " +
-                      (VERDICT_WORDS[c.result] || c.result) + ": " + c.detail));
+      (VERDICT_WORDS[c.result] || c.result) + ": " + c.detail));
   });
   ul.appendChild(el("li", "", "Checks with data: " + p.factors_with_data + ". Tier reason: " + p.tier_reason + "."));
   d.appendChild(ul);
@@ -321,7 +344,7 @@ function renderLimits(r) {
   r.facts.limits.forEach(function (text) { ul.appendChild(el("li", "", text)); });
   s.appendChild(ul);
   s.appendChild(el("p", "", r.location.demo ? "Radius: not used (offline demo)."
-                                             : "Radius used: " + r.location.radius_m + " m. A different radius can change the result."));
+    : "Radius used: " + r.location.radius_m + " m. A different radius can change the result."));
   s.appendChild(el("p", "", r.terrain_summary ? r.terrain_summary : "Terrain was not measured."));
   if (r.cache.length > 0) {
     var store = "off", parts = [];
@@ -352,7 +375,7 @@ function renderRuledOut(facts) {
   }
   if (facts.not_assessed_no_data.length > 0) {
     s.appendChild(el("p", "hint", "Not assessed, no data in the plant database (" +
-                     facts.not_assessed_no_data.length + "): " + facts.not_assessed_no_data.join(", ")));
+      facts.not_assessed_no_data.length + "): " + facts.not_assessed_no_data.join(", ")));
   }
   return s;
 }
@@ -426,6 +449,7 @@ function startLlm(model, btn, status, out) {
   })
     .then(function (r) {
       if (r.ok) { return r.json(); }
+      if (r.status === 503) { throw new Error(MSG_STORE_DOWN); }
       return r.json().then(function (b) {
         throw new Error(typeof b.detail === "string" ? b.detail : "the server refused the request");
       });
@@ -438,7 +462,7 @@ function pollLlm(jobId, run, startedAt, failedInARow, btn, status, out) {
   if (run !== currentRun) { return; }
   fetch("/jobs/" + jobId)
     .then(function (r) {
-      if (!r.ok) { throw new Error("status " + r.status); }
+      if (!r.ok) { throw pollError(r); }
       return r.json();
     })
     .then(function (job) {
@@ -455,10 +479,11 @@ function pollLlm(jobId, run, startedAt, failedInARow, btn, status, out) {
       status.textContent = job.stage + " (" + Math.round(secs) + " s)";
       setTimeout(function () { pollLlm(jobId, run, startedAt, 0, btn, status, out); }, POLL_MS);
     })
-    .catch(function () {
+    .catch(function (err) {
       if (run !== currentRun) { return; }
+      if (err && err.fatal) { return llmFail(run, err.shown, btn, status, out); }
       if (failedInARow + 1 >= MAX_FAILED_POLLS) {
-        return llmFail(run, "Lost contact with the server. Is it still running?", btn, status, out);
+        return llmFail(run, (err && err.shown) || MSG_LOST, btn, status, out);
       }
       setTimeout(function () { pollLlm(jobId, run, startedAt, failedInARow + 1, btn, status, out); }, POLL_MS);
     });
@@ -470,7 +495,7 @@ function llmFail(run, message, btn, status, out) {
   status.textContent = "";
   out.textContent = "";
   out.appendChild(el("p", "error", "The local model could not be used: " + message +
-                     " The text above is unchanged."));
+    " The text above is unchanged."));
 }
 
 function renderLlmResult(out, res) {

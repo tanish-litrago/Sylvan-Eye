@@ -25,6 +25,27 @@ def test_static_files_are_served():
     assert r.status_code == 200 and "--paper" in r.text
     r = client.get("/static/app.js")
     assert r.status_code == 200 and "parsePasted" in r.text
+    assert "MSG_STORE_DOWN" in r.text and "MSG_JOB_GONE" in r.text   # the job-store wording (v1.1.0)
+
+
+def test_job_store_down_gives_503_with_a_message():
+    import jobs
+    from jobstore import JobStoreError
+
+    real = jobs._store
+
+    def broken():
+        raise JobStoreError("the Redis job store failed: ConnectionError")
+
+    jobs._store = broken
+    try:
+        r = client.post("/analyze", json={"lat": 22.0797, "lon": 82.1409, "demo": True})
+        assert r.status_code == 503 and "job store" in r.json()["detail"], r.text
+        r = client.get("/jobs/anything")
+        assert r.status_code == 503 and "job store" in r.json()["detail"], r.text
+    finally:
+        jobs._store = real
+    assert client.get("/jobs/anything").status_code == 404      # back to normal: unknown id
 
 
 def test_unknown_route_is_404():
@@ -108,6 +129,7 @@ if __name__ == "__main__":
     test_health()
     test_page_is_served()
     test_static_files_are_served()
+    test_job_store_down_gives_503_with_a_message()
     test_unknown_route_is_404()
     test_analyze_rejects_bad_input()
     test_unknown_job_is_404()

@@ -4,7 +4,7 @@ Give it a location, and it tells you which trees could be planted there, why, an
 
 **Rules decide; the language model only explains, and it is off by default.** Every verdict comes from fixed rules over measured data and a sourced plant table. An optional local language model can rewrite the explanation in prose, but its text is checked claim by claim against the facts and discarded if it fails.
 
-> **Status:** v1.0.0 is a working, documented prototype. It is **not** validated for real planting decisions. Always confirm with a local soil test and local forestry advice. See [Known limits](#known-limits).
+> **Status:** v1.1.0 is a working, documented prototype. It is **not** validated for real planting decisions. Always confirm with a local soil test and local forestry advice. See [Known limits](#known-limits).
 
 ## What it does
 
@@ -18,6 +18,7 @@ Give it a location, and it tells you which trees could be planted there, why, an
 - Python 3.11 or newer
 - A Google account with [Earth Engine](https://earthengine.google.com/) access and a Google Cloud project
 - Optional: [Ollama](https://ollama.com/) for the language-model rewrite
+- Optional: [Docker Desktop](https://www.docker.com/products/docker-desktop/) to run the whole stack (app, Postgres, Redis)
 
 ## Setup
 
@@ -44,6 +45,30 @@ Open <http://127.0.0.1:8000>. Paste "lat, lon" copied from Google Maps, or pick 
 
 The app has no login and shows raw error text. Run it on your own computer only.
 
+## Run with Docker
+
+One command starts the app, Postgres (the cache) and Redis (job records). You still need `earthengine authenticate` once on your own computer: the container uses that login, mounted read-only, and never copies it.
+
+```powershell
+copy .env.example .env
+notepad .env                                  # set SYLVAN_EE_DIR and POSTGRES_PASSWORD (see below)
+docker compose up -d --build
+docker compose ps                             # app, db and redis should say (healthy)
+```
+
+Then open <http://127.0.0.1:8000>. In `.env`:
+
+- `SYLVAN_EE_DIR`: your Earth Engine login folder, with forward slashes, e.g. `C:/Users/YOURNAME/.config/earthengine`.
+- `POSTGRES_PASSWORD`: choose one, letters and digits only. It is applied when the database is first created.
+
+A new Docker volume starts with an empty cache, so each place takes 1-2 minutes the first time; later runs take seconds. The cache survives `docker compose down`; `docker compose down -v` deletes it.
+
+Ollama stays on your computer (for the GPU). The container reaches it at `host.docker.internal`. If the rewrite button cannot connect, set the Windows variable `OLLAMA_HOST=0.0.0.0` and restart Ollama. That opens Ollama to your local network, so only do it on a network you trust.
+
+If Redis stops, the page says "The job store (Redis) is not available. Try again in a moment." Start it again with `docker compose start redis` and run the place again; the app needs no restart. Redis keeps nothing on disk, so a job that was running when Redis restarted is gone and the page says "The server no longer knows this job ... Run it again." If the app itself restarts during a job, the job is reported as failed.
+
+Safety: the page is published on `127.0.0.1` only (the app has no login and shows raw error text), Postgres and Redis publish no port, the app runs as a non-root user, and `.env` is excluded from git and from the image. `python test_docker_files.py` checks this from the files.
+
 ## Command line
 
 ```powershell
@@ -64,7 +89,11 @@ Install Ollama, run `ollama pull gemma4:e4b`, and keep it running. The page then
 | `SYLVAN_STORE` | `sqlite` or `postgres` (cache backend) | `sqlite` |
 | `SYLVAN_SQLITE_PATH` | SQLite cache file | `sylvan_cache.db` |
 | `SYLVAN_DB_URL` | Postgres connection string (needs `pip install -r requirements-postgres.txt`) | none |
-| `SYLVAN_OLLAMA_URL` | Ollama chat endpoint | `http://localhost:11434/api/chat` |
+| `SYLVAN_JOBS` | `memory` or `redis` (where job records are kept) | `memory` |
+| `SYLVAN_REDIS_URL` | Redis address, e.g. `redis://localhost:6379/0` (needs `pip install -r requirements-redis.txt`) | none |
+| `SYLVAN_OLLAMA_URL` | Ollama chat endpoint | `http://localhost:11434/api/chat` (in Docker: `http://host.docker.internal:11434/api/chat`) |
+
+Docker also reads `SYLVAN_EE_DIR` and `POSTGRES_PASSWORD` from `.env` (see [Run with Docker](#run-with-docker)); compose sets the store and Redis variables itself.
 
 ## Plant data
 
@@ -81,11 +110,12 @@ Plain scripts, no framework. Each prints a closing line when it passes.
 ```powershell
 python test_tiers.py       python test_jobs.py        python test_app.py
 python test_gate.py        python test_plants.py      python test_run_live.py
-python test_run_regions.py python test_storage.py
+python test_run_regions.py python test_storage.py    python test_jobstore.py
+python test_docker_files.py
 python test_fixtures.py    python test_regions.py     # need fixtures/ (see below)
 ```
 
-`test_app.py` needs `httpx`, and `fixtures/` is created by `python export_fixtures.py` (the six original test sites) and `python run_regions.py` (the Phase 7 sites). `run_regions.py` runs sites listed in `phase7_sites.json` and compares the result with expectations written *before* the run; it refuses a site until those are filled in.
+`test_jobstore.py` always tests the memory store; add `SYLVAN_TEST_REDIS_URL` (a Redis database you do not need: it deletes `sylvan:job:*` keys there) to include Redis, or run it inside Docker: `docker compose run --rm -e SYLVAN_TEST_REDIS_URL=redis://redis:6379/15 app python test_jobstore.py`. `test_app.py` needs `httpx`, and `fixtures/` is created by `python export_fixtures.py` (the six original test sites) and `python run_regions.py` (the Phase 7 sites). `run_regions.py` runs sites listed in `phase7_sites.json` and compares the result with expectations written *before* the run; it refuses a site until those are filled in.
 
 ## Project layout
 
@@ -96,7 +126,8 @@ python test_fixtures.py    python test_regions.py     # need fixtures/ (see belo
 | `tiers.py` | Strong / Likely / Caution grouping |
 | `phase5_explainer.py` | Fact sheet, fixed-rules text, optional model rewrite, claim guard |
 | `storage.py` | Measurement cache (SQLite or Postgres) |
-| `jobs.py`, `app.py`, `static/` | Background jobs, web routes, the page |
+| `jobs.py`, `jobstore.py`, `app.py`, `static/` | Background jobs, where their records are kept (memory or Redis), web routes, the page |
+| `Dockerfile`, `docker-compose.yml`, `.dockerignore`, `.env.example` | Docker setup (app, Postgres, Redis) |
 | `plants.csv`, `validate_plants.py` | Plant requirements and their checker |
 | `fixtures.py`, `export_fixtures.py`, `run_regions.py`, `phase7_sites.json` | Saved measurements and regional testing |
 | `HANDOFF.md` | Full state, decisions, findings and next steps |
@@ -107,7 +138,7 @@ python test_fixtures.py    python test_regions.py     # need fixtures/ (see belo
 - The built-up warning can miss houses on wooded hill slopes; barren natural land also gets the bare-or-built-up warning.
 - Gate thresholds rest on few sites. Rainfall readings at Leh and Solapur look high and are unverified.
 - 14 of 32 plants have no stated absolute rainfall minimum, and only 18 have any altitude limit.
-- One analysis runs at a time and jobs live in memory.
+- One analysis runs at a time. Job records live in memory, or in Redis with `SYLVAN_JOBS=redis` (Docker); either way the work runs in threads inside the app, so a restart cuts off a running job and it is reported as failed. Redis holds job records only (one hour, nothing on disk, no password, not reachable from outside Docker); the optional model's fact sheet stays in the app's memory, so after a restart the rewrite button on an old analysis asks you to run the place again.
 
 The complete list, with the reasons behind each decision, is in [`HANDOFF.md`](HANDOFF.md).
 
