@@ -1,4 +1,4 @@
-# Sylvan Eye - layer 1: the app container.
+# Sylvan Eye - the app container (layer 1; layer 2 adds the Postgres driver).
 # Credentials are NOT built in: the Earth Engine login is mounted at run time (docker-compose.yml).
 
 FROM python:3.12-slim
@@ -17,14 +17,15 @@ RUN useradd --create-home --uid 10001 --shell /usr/sbin/nologin app \
 WORKDIR /app
 
 # Dependencies first, so editing app code does not reinstall them (Docker reuses this layer).
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+COPY requirements.txt requirements-postgres.txt ./
+RUN pip install -r requirements.txt -r requirements-postgres.txt
 
 COPY --chown=app:app . .
 
 USER app
 
-# The cache file goes on the volume, not into the image.
+# Without compose (plain `docker run`) the cache is SQLite, kept in /data (mount a volume there).
+# With docker-compose.yml the cache is Postgres instead.
 ENV SYLVAN_SQLITE_PATH=/data/sylvan_cache.db
 
 EXPOSE 8000

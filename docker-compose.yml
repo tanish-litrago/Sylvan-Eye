@@ -1,20 +1,40 @@
-# Sylvan Eye - layer 1: the app container only (the cache is still SQLite, on a volume).
+# Sylvan Eye - layers 1-2: the app container + Postgres as the cache.
 # Secrets and machine paths come from .env (git-ignored; copy .env.example). None are written here.
 
 services:
   app:
     build: .
+    depends_on:
+      db:
+        condition: service_healthy   # the app starts only after Postgres accepts connections
     ports:
       # 127.0.0.1 only: the app has no login and shows raw error text.
       - "127.0.0.1:8000:8000"
     environment:
       # Ollama runs on the Windows machine (GPU); Docker Desktop provides host.docker.internal.
       SYLVAN_OLLAMA_URL: ${SYLVAN_OLLAMA_URL:-http://host.docker.internal:11434/api/chat}
+      SYLVAN_STORE: postgres
+      # The password comes from .env (letters and digits only, so the URL stays valid).
+      SYLVAN_DB_URL: postgresql://sylvan:${POSTGRES_PASSWORD}@db:5432/sylvan
     volumes:
       # Your Earth Engine login folder, READ-ONLY. Path comes from .env.
       - "${SYLVAN_EE_DIR:?set SYLVAN_EE_DIR in .env (see .env.example)}:/home/app/.config/earthengine:ro"
+
+  db:
+    image: postgres:16-alpine
+    # No "ports:" on purpose: only the app (inside the Docker network) can reach the database.
+    environment:
+      POSTGRES_USER: sylvan
+      POSTGRES_DB: sylvan
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env (see .env.example)}"
+    volumes:
       # The cache. A new volume starts empty, so each place takes 1-2 minutes the first time.
-      - sylvan_data:/data
+      - sylvan_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sylvan -d sylvan"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
 volumes:
-  sylvan_data:
+  sylvan_pgdata:

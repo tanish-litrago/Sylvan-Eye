@@ -3,7 +3,7 @@ Checks the safety rules of the Docker files by reading them as text (no Docker, 
 
     python test_docker_files.py
 
-Rules checked:
+Rules checked (layers 1-2):
   - the page is published on 127.0.0.1 only
   - the container does not run as root
   - the Earth Engine login is mounted read-only and never copied into the image
@@ -63,6 +63,8 @@ def literal_secrets(lines):
         if not m:
             continue
         name, value = m.group(1), m.group(2).strip().strip('"').strip("'")
+        if "://" in value:
+            continue  # a URL: judged by the password check below
         if SECRET_WORDS.search(name) and value and not value.startswith("${"):
             bad.append(f"{name}={value}")
     # a connection string with a literal password: scheme://user:password@host
@@ -90,6 +92,7 @@ def main():
     check("compose publishes at least one port", len(ports) > 0)
     check("every published port starts with 127.0.0.1:",
           all(p.startswith("127.0.0.1:") for p in ports), str(ports))
+    check("only the app publishes a port (the database has none)", len(ports) == 1, str(ports))
     check("no 0.0.0.0 mapping and no host networking",
           not any("0.0.0.0" in p for p in ports)
           and not any(re.match(r"\s*network_mode:\s*[\"']?host", l) for l in compose))
@@ -129,6 +132,17 @@ def main():
           not [s for s in literal_secrets(example)
                if not re.search(r"change-?me|your|xxx|\.\.\.", s, re.I)],
           str(literal_secrets(example)))
+
+    print("\n== Postgres (layer 2) ==")
+    text = "\n".join(compose)
+    check("app gets its database URL with the password as a ${POSTGRES_PASSWORD} reference",
+          re.search(r"SYLVAN_DB_URL:.*:\$\{POSTGRES_PASSWORD[^}]*\}@", text) is not None)
+    check("the db service sets its password from ${POSTGRES_PASSWORD}",
+          re.search(r"POSTGRES_PASSWORD:\s*[\"']?\$\{POSTGRES_PASSWORD", text) is not None)
+    check("the app waits for a healthy database",
+          "service_healthy" in text and "pg_isready" in text)
+    check(".env.example leaves POSTGRES_PASSWORD empty",
+          any(re.fullmatch(r"POSTGRES_PASSWORD=\s*", l.strip()) for l in example))
 
     print()
     print("All Docker file checks passed." if failures == 0 else f"{failures} CHECK(S) FAILED.")
