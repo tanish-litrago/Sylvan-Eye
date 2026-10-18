@@ -158,10 +158,11 @@ def test_second_job_waits_for_the_first():
 
 
 def test_old_jobs_are_pruned():
+    if jobs._store().name != "memory":      # Redis drops old records by expiry instead
+        return
     ids = [jobs.start_job(params(demo=True)) for _ in range(jobs.MAX_JOBS + 5)]
     wait_for(ids[-1], {"done", "error"})
-    with jobs._JOBS_LOCK:
-        assert len(jobs._JOBS) <= jobs.MAX_JOBS
+    assert jobs._store().count() <= jobs.MAX_JOBS
     assert jobs.get_job(ids[0]) is None and jobs.get_job(ids[-1]) is not None
 
 

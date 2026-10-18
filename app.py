@@ -19,11 +19,12 @@ then open http://127.0.0.1:8000
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 import jobs
+from jobstore import JobStoreError
 from phase4_matcher import DEFAULT_RADIUS
 from phase5_explainer import OLLAMA_MODEL
 
@@ -44,6 +45,12 @@ if not (Path.cwd() / "plants.csv").exists():
                      "python -m uvicorn app:app --reload")
 
 app = FastAPI(title="Sylvan Eye")
+
+
+@app.exception_handler(JobStoreError)
+def job_store_unavailable(request, exc):
+    """The job store (Redis) cannot be used: say so plainly instead of a bare server error."""
+    return JSONResponse(status_code=503, content={"detail": str(exc)})
 
 
 class AnalyzeRequest(BaseModel):

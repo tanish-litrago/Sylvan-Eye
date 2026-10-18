@@ -3,7 +3,7 @@ Checks the safety rules of the Docker files by reading them as text (no Docker, 
 
     python test_docker_files.py
 
-Rules checked (layers 1-2):
+Rules checked (layers 1-3):
   - the page is published on 127.0.0.1 only
   - the container does not run as root
   - the Earth Engine login is mounted read-only and never copied into the image
@@ -143,6 +143,17 @@ def main():
           "service_healthy" in text and "pg_isready" in text)
     check(".env.example leaves POSTGRES_PASSWORD empty",
           any(re.fullmatch(r"POSTGRES_PASSWORD=\s*", l.strip()) for l in example))
+
+    print("\n== Redis (layer 3) ==")
+    check("the app is told to use Redis for job records",
+          re.search(r"SYLVAN_JOBS:\s*redis\b", text) is not None
+          and re.search(r"SYLVAN_REDIS_URL:\s*redis://redis:6379", text) is not None)
+    check("the redis service has a healthcheck and the app waits for it",
+          "redis-cli" in text and text.count("service_healthy") >= 2)
+    check("the Dockerfile installs the Redis driver",
+          any(l.strip().startswith("RUN") and "requirements-redis.txt" in l for l in code_lines(dockerfile)))
+    check("Redis is not given a literal password in a URL",
+          not re.search(r"redis://[^/\s:@]*:[^@\s$]+@", text))
 
     print()
     print("All Docker file checks passed." if failures == 0 else f"{failures} CHECK(S) FAILED.")

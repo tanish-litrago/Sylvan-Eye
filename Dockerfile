@@ -1,4 +1,4 @@
-# Sylvan Eye - the app container (layer 1; layer 2 adds the Postgres driver).
+# Sylvan Eye - the app container (layer 1; layer 2 adds the Postgres driver, layer 3 the Redis driver).
 # Credentials are NOT built in: the Earth Engine login is mounted at run time (docker-compose.yml).
 
 FROM python:3.12-slim
@@ -17,8 +17,8 @@ RUN useradd --create-home --uid 10001 --shell /usr/sbin/nologin app \
 WORKDIR /app
 
 # Dependencies first, so editing app code does not reinstall them (Docker reuses this layer).
-COPY requirements.txt requirements-postgres.txt ./
-RUN pip install -r requirements.txt -r requirements-postgres.txt
+COPY requirements.txt requirements-postgres.txt requirements-redis.txt ./
+RUN pip install -r requirements.txt -r requirements-postgres.txt -r requirements-redis.txt
 
 COPY --chown=app:app . .
 
