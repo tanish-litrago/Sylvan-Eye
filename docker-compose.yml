@@ -1,0 +1,20 @@
+# Sylvan Eye - layer 1: the app container only (the cache is still SQLite, on a volume).
+# Secrets and machine paths come from .env (git-ignored; copy .env.example). None are written here.
+
+services:
+  app:
+    build: .
+    ports:
+      # 127.0.0.1 only: the app has no login and shows raw error text.
+      - "127.0.0.1:8000:8000"
+    environment:
+      # Ollama runs on the Windows machine (GPU); Docker Desktop provides host.docker.internal.
+      SYLVAN_OLLAMA_URL: ${SYLVAN_OLLAMA_URL:-http://host.docker.internal:11434/api/chat}
+    volumes:
+      # Your Earth Engine login folder, READ-ONLY. Path comes from .env.
+      - "${SYLVAN_EE_DIR:?set SYLVAN_EE_DIR in .env (see .env.example)}:/home/app/.config/earthengine:ro"
+      # The cache. A new volume starts empty, so each place takes 1-2 minutes the first time.
+      - sylvan_data:/data
+
+volumes:
+  sylvan_data:

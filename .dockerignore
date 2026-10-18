@@ -1,0 +1,9 @@
+# Keeps secrets, local data and clutter out of the image.
+# (A pattern without ** only matches in the project root, hence the **/ forms.)
+.env
+.env.*
+**/*.db
+venv/
+.git
+**/__pycache__
+**/*.pyc
