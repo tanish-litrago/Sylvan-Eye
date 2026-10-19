@@ -5,10 +5,10 @@ Tests for decisions written into plants.csv:  python -m tests.test_plants
 from phases.phase4_matcher import DEMO_ENV, PLANTS_CSV, match_plants
 
 
-def verdict(name, rainfall):
-    """('offered', rainfall verdict) or ('ruled out', reason) for one plant at a given rainfall."""
+def verdict(name, rainfall, elevation=200):
+    """('offered', rainfall verdict) or ('ruled out', reason) for one plant at a given rainfall and elevation."""
     ranked, excluded, blank = match_plants(dict(DEMO_ENV, annual_rainfall_mm=rainfall,
-                                                annual_mean_temp_c=26.0, elevation_m=200))
+                                                annual_mean_temp_c=26.0, elevation_m=elevation))
     for e in ranked:
         if e["name"] == name:
             return "offered", e["factors"]["rainfall"][0]
@@ -70,26 +70,49 @@ def test_the_last_three_species_come_from_their_ecocrop_sheets():
     for name, sheet in (("Bamboo (male bamboo)", "5238"), ("Bijasal", "9046"), ("Chir pine", "8653")):
         assert rows[name]["source"].endswith("id=" + sheet), name
         assert rows[name]["rain_abs_min"] and rows[name]["temp_abs_max"] and rows[name]["ph_abs_max"], name
-    # Bamboo's narrow acidic pH (absolute 4 to 6.5) rules out neutral soil; Chir pine has no altitude limit.
+    # Bamboo's narrow acidic pH (absolute 4 to 6.5) rules out neutral soil. (Chir pine's altitude limits were added on 2026-10-19, see the test below.)
     ranked, excluded, blank = match_plants(dict(DEMO_ENV))                  # demo pH is 7.58
     assert any(e["name"] == "Bamboo (male bamboo)" for e in excluded)
     ranked, excluded, blank = match_plants(dict(DEMO_ENV, ph=5.0, annual_rainfall_mm=2000, annual_mean_temp_c=24.0, elevation_m=300))
     assert any(e["name"] == "Bamboo (male bamboo)" for e in ranked)
-    assert rows["Chir pine"]["alt_min_m"] == "" and rows["Chir pine"]["alt_max_m"] == ""
+    assert rows["Chir pine"]["alt_min_m"] == "400" and rows["Chir pine"]["alt_max_m"] == "2300"
 
 
-def test_amla_rainfall_conflict_is_visible():
-    # CONFLICT (see the row's notes): the ECOCROP sheet's absolute minimum is 700 mm, while Indian sources call
-    # 630-800 mm ideal. The sheet is used until the user decides, so Amla is ruled out at 650 mm. If the
-    # limit is changed on purpose, update this test and HANDOFF.
-    status, reason = verdict("Amla", 650)
-    assert status == "ruled out" and "700" in reason, (status, reason)
+def test_amla_rainfall_floor_is_630_mm_and_dry_zone_orchards_are_offered():
+    # 2026-10-19, user decision (option A): the ECOCROP sheet's 700 mm floor and 1500-2500 mm optimum are
+    # replaced at the dry end by the Indian sources (630-800 mm ideal; zero-irrigation orchards at about
+    # 750-830 mm). The maxima (2500 optimal, 4200 absolute) stay from the sheet. Before this Amla was ruled
+    # out at 650 mm and only "poor" below 1500 mm.
+    for mm in (600, 629):
+        status, reason = verdict("Amla", mm)
+        assert status == "ruled out" and "630" in reason, (mm, status, reason)
+    for mm in (630, 650, 750, 831, 1200, 2500):
+        assert verdict("Amla", mm) == ("offered", "good"), (mm, verdict("Amla", mm))
+    status, rain = verdict("Amla", 3000)             # above the optimal maximum, below the absolute one
+    assert status == "offered" and rain != "good", (status, rain)
+    assert verdict("Amla", 4300)[0] == "ruled out"
+
+
+def test_chir_pine_is_limited_to_400_2300_m():
+    # 2026-10-19, user decision (option A): the ECOCROP sheet has no altitude values, so the limits come from the
+    # Botanical Survey of India datasheet (400 to 2,300 m a.s.l.), used as hard limits. Before this chir pine was
+    # offered in the plains. Rain 1200 mm and 26 C are inside its ranges, so only altitude decides here.
+    for m in (100, 270, 399):                                 # plains, Bilaspur is about 270-300 m
+        status, reason = verdict("Chir pine", 1200, elevation=m)
+        assert status == "ruled out" and "400" in reason, (m, status, reason)
+    for m in (400, 1000, 2262, 2300):                         # 2262 m is Shimla
+        assert verdict("Chir pine", 1200, elevation=m)[0] == "offered", m
+    for m in (2301, 3304):                                    # 3304 m is Leh
+        status, reason = verdict("Chir pine", 1200, elevation=m)
+        assert status == "ruled out" and "2300" in reason, (m, status, reason)
 
 
 if __name__ == "__main__":
     test_sal_has_a_hard_rainfall_floor_of_1000_mm()
     test_semal_and_amla_are_assessed_from_their_ecocrop_sheets()
     test_banyan_has_no_altitude_minimum_but_a_1200_m_maximum()
-    test_amla_rainfall_conflict_is_visible()
+    test_amla_rainfall_floor_is_630_mm_and_dry_zone_orchards_are_offered()
+    test_the_last_three_species_come_from_their_ecocrop_sheets()
+    test_chir_pine_is_limited_to_400_2300_m()
     test_mango_is_offered_in_the_konkan_but_not_beyond_3500_mm()
     print("all plant data tests passed")
