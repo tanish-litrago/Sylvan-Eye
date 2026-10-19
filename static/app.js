@@ -199,22 +199,16 @@ function el(tag, className, text) {
   return e;
 }
 
-var VERDICT_WORDS = {
-  good: "good", within_limits: "within limits", marginal: "marginal",
-  poor: "poor", skipped: "no data", ok: "ok"
-};
-var VERDICT_CLASS = {
-  good: "chip-ok", within_limits: "chip-ok", ok: "chip-ok",
-  marginal: "chip-marginal", poor: "chip-poor", skipped: "chip-nodata"
-};
-var FACTOR_LABELS = {
-  rainfall: "Rainfall", temperature: "Temperature", pH: "pH",
-  texture: "Texture", elevation: "Elevation"
-};
+var VERDICT_WORDS = { good: "good", within_limits: "within limits", marginal: "marginal",
+                      poor: "poor", skipped: "no data", ok: "ok" };
+var VERDICT_CLASS = { good: "chip-ok", within_limits: "chip-ok", ok: "chip-ok",
+                      marginal: "chip-marginal", poor: "chip-poor", skipped: "chip-nodata" };
+var FACTOR_LABELS = { rainfall: "Rainfall", temperature: "Temperature", pH: "pH",
+                      texture: "Texture", elevation: "Elevation" };
 var ENV_LABELS = [["annual_rainfall_mm", "Rainfall (mm a year)"],
-["annual_mean_temp_c", "Mean temperature (C)"],
-["ph", "Soil pH"], ["soil_texture", "Soil texture"],
-["elevation_m", "Elevation (m)"]];
+                  ["annual_mean_temp_c", "Mean temperature (C)"],
+                  ["ph", "Soil pH"], ["soil_texture", "Soil texture"],
+                  ["elevation_m", "Elevation (m)"]];
 
 function renderResults(r) {
   var root = $("results");
@@ -259,7 +253,7 @@ function renderBanner(r) {
   b.appendChild(el("p", "", sub));
   if (!r.location.demo) {
     b.appendChild(el("p", "banner-loc", "Location " + r.location.lat + ", " + r.location.lon +
-      "  |  radius used: " + r.location.radius_m + " m"));
+                      "  |  radius used: " + r.location.radius_m + " m"));
   }
   return b;
 }
@@ -320,7 +314,7 @@ function renderPlant(p) {
     var c = p.checks[factor];
     var word = VERDICT_WORDS[c.result] || c.result;
     chips.appendChild(el("span", "chip " + (VERDICT_CLASS[c.result] || "chip-nodata"),
-      (FACTOR_LABELS[factor] || factor) + ": " + word));
+                         (FACTOR_LABELS[factor] || factor) + ": " + word));
   });
   p.flags.forEach(function (flag) { chips.appendChild(el("span", "chip chip-flag", "Flag: " + flag)); });
   sum.appendChild(chips);
@@ -330,7 +324,7 @@ function renderPlant(p) {
   Object.keys(p.checks).forEach(function (factor) {
     var c = p.checks[factor];
     ul.appendChild(el("li", "", (FACTOR_LABELS[factor] || factor) + ", " +
-      (VERDICT_WORDS[c.result] || c.result) + ": " + c.detail));
+                      (VERDICT_WORDS[c.result] || c.result) + ": " + c.detail));
   });
   ul.appendChild(el("li", "", "Checks with data: " + p.factors_with_data + ". Tier reason: " + p.tier_reason + "."));
   d.appendChild(ul);
@@ -344,7 +338,7 @@ function renderLimits(r) {
   r.facts.limits.forEach(function (text) { ul.appendChild(el("li", "", text)); });
   s.appendChild(ul);
   s.appendChild(el("p", "", r.location.demo ? "Radius: not used (offline demo)."
-    : "Radius used: " + r.location.radius_m + " m. A different radius can change the result."));
+                                             : "Radius used: " + r.location.radius_m + " m. A different radius can change the result."));
   s.appendChild(el("p", "", r.terrain_summary ? r.terrain_summary : "Terrain was not measured."));
   if (r.cache.length > 0) {
     var store = "off", parts = [];
@@ -375,7 +369,7 @@ function renderRuledOut(facts) {
   }
   if (facts.not_assessed_no_data.length > 0) {
     s.appendChild(el("p", "hint", "Not assessed, no data in the plant database (" +
-      facts.not_assessed_no_data.length + "): " + facts.not_assessed_no_data.join(", ")));
+                     facts.not_assessed_no_data.length + "): " + facts.not_assessed_no_data.join(", ")));
   }
   return s;
 }
@@ -495,7 +489,7 @@ function llmFail(run, message, btn, status, out) {
   status.textContent = "";
   out.textContent = "";
   out.appendChild(el("p", "error", "The local model could not be used: " + message +
-    " The text above is unchanged."));
+                     " The text above is unchanged."));
 }
 
 function renderLlmResult(out, res) {

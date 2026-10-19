@@ -1,8 +1,8 @@
 """
-Tests for decisions written into plants.csv:  python test_plants.py
+Tests for decisions written into plants.csv:  python -m tests.test_plants
 """
 
-from phase4_matcher import DEMO_ENV, match_plants
+from phases.phase4_matcher import DEMO_ENV, PLANTS_CSV, match_plants
 
 
 def verdict(name, rainfall):
@@ -42,7 +42,7 @@ def test_mango_is_offered_in_the_konkan_but_not_beyond_3500_mm():
 def test_semal_and_amla_are_assessed_from_their_ecocrop_sheets():
     # Filled 2026-10-14 (they were the first two of six empty rows). Both have a sheet at ecocrop.apps.fao.org.
     import csv
-    rows = {r["common_name"]: r for r in csv.DictReader(open("plants.csv", encoding="utf-8"))}
+    rows = {r["common_name"]: r for r in csv.DictReader(open(PLANTS_CSV, encoding="utf-8"))}
     for name in ("Semal", "Amla"):
         assert rows[name]["source"].startswith("https://ecocrop.apps.fao.org/"), name
         assert rows[name]["rain_opt_min"] and rows[name]["temp_opt_min"] and rows[name]["ph_opt_min"], name
@@ -66,7 +66,7 @@ def test_banyan_has_no_altitude_minimum_but_a_1200_m_maximum():
 
 def test_the_last_three_species_come_from_their_ecocrop_sheets():
     import csv
-    rows = {r["common_name"]: r for r in csv.DictReader(open("plants.csv", encoding="utf-8"))}
+    rows = {r["common_name"]: r for r in csv.DictReader(open(PLANTS_CSV, encoding="utf-8"))}
     for name, sheet in (("Bamboo (male bamboo)", "5238"), ("Bijasal", "9046"), ("Chir pine", "8653")):
         assert rows[name]["source"].endswith("id=" + sheet), name
         assert rows[name]["rain_abs_min"] and rows[name]["temp_abs_max"] and rows[name]["ph_abs_max"], name

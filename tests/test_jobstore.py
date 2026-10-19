@@ -1,5 +1,5 @@
 """
-Tests for jobstore.py and the job-record rules in jobs.py.  Plain asserts:  python test_jobstore.py
+Tests for jobstore.py and the job-record rules in jobs.py.  Plain asserts:  python -m tests.test_jobstore
 
 The memory store is always tested. The Redis store is tested only when a Redis is available:
     $env:SYLVAN_TEST_REDIS_URL = "redis://localhost:6379/15"      (use a database you do not need)
@@ -74,13 +74,21 @@ def test_make_store_errors():
         except JobStoreError as e:
             check("redis without a URL rejected", "SYLVAN_REDIS_URL" in str(e))
         try:
-            RedisJobStore("redis://nobody:secretpw@localhost:1/0")
-            check("unreachable Redis raises JobStoreError", False)
-        except JobStoreError as e:
-            msg = str(e)
-            check("unreachable Redis raises JobStoreError", "could not reach Redis" in msg)
-            check("the error never shows the URL or password",
-                  "secretpw" not in msg and "localhost" not in msg, msg)
+            import redis  # noqa: F401
+            have_driver = True
+        except ImportError:
+            have_driver = False
+            print("SKIPPED  unreachable-Redis check (the redis driver is not installed: "
+                  "pip install -r requirements-redis.txt)")
+        if have_driver:
+            try:
+                RedisJobStore("redis://nobody:secretpw@localhost:1/0")
+                check("unreachable Redis raises JobStoreError", False, "no error was raised")
+            except JobStoreError as e:
+                msg = str(e)
+                check("unreachable Redis raises JobStoreError", "could not reach Redis" in msg, msg)
+                check("the error never shows the URL or password",
+                      "secretpw" not in msg and "localhost" not in msg, msg)
     finally:
         for k, v in saved.items():
             if v is None:

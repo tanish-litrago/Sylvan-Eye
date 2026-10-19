@@ -25,9 +25,9 @@ cannot outrank one with solid data just because nothing was checked.
 Confidence = how many of the 5 factors (those 4 plus elevation) had data.
 
 Run:
-    python phase4_matcher.py --demo        offline, uses the measured Bilaspur values
-    python phase4_matcher.py               live, default location (Bilaspur city centre)
-    python phase4_matcher.py LAT LON       live, any location, e.g. python phase4_matcher.py 22.0336 82.2651
+    python -m phases.phase4_matcher --demo        offline, uses the measured Bilaspur values
+    python -m phases.phase4_matcher               live, default location (Bilaspur city centre)
+    python -m phases.phase4_matcher LAT LON       live, any location, e.g. python -m phases.phase4_matcher 22.0336 82.2651
     add  --radius 1000  to size the terrain circle in metres (default 400)
     add  --brief        for a short report (10 plants, only the non-good checks)
     add  --refresh      recompute the measurements and overwrite the cache
@@ -35,10 +35,12 @@ Run:
     cache backend: SYLVAN_STORE=sqlite (default) or postgres, see storage.py
 """
 
+from pathlib import Path
 import csv
 import sys
 
-PLANTS_CSV = "plants.csv"
+DATA_DIR = Path(__file__).resolve().parent.parent / "data"      # plants.csv lives in data/
+PLANTS_CSV = str(DATA_DIR / "plants.csv")
 
 SCORES = {"good": 1.0, "within_limits": 0.7, "marginal": 0.5, "poor": 0.35}
 NEUTRAL = 0.5  # value used for a scored factor that has no data
@@ -343,8 +345,8 @@ def run_live(lat, lon, radius_m=DEFAULT_RADIUS, use_cache=True, refresh=False):
     Raw measurements are cached (see storage.py); the matcher's verdicts never are.
     use_cache=False skips the cache entirely; refresh=True recomputes and overwrites it.
     """
-    import phase1_data_pipeline, phase2_terrain_extraction, phase4_inputs
-    from phase4_inputs import START_YEAR, END_YEAR, classify_soil_texture
+    from phases import phase1_data_pipeline, phase2_terrain_extraction, phase4_inputs
+    from phases.phase4_inputs import START_YEAR, END_YEAR, classify_soil_texture
     from storage import StoreError, cached, get_store, make_key
     terrain_version = getattr(phase2_terrain_extraction, "CACHE_VERSION", 1)
     soil_version = getattr(phase1_data_pipeline, "CACHE_VERSION", 1)

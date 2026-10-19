@@ -7,7 +7,7 @@ MEASUREMENTS are cached, never the matcher's verdicts (so changing a threshold a
 once) and never the LLM's text.
 
 Backends (same interface, pick with environment variables):
-    SQLite   (default)  no server, one file.        SYLVAN_SQLITE_PATH=sylvan_cache.db
+    SQLite   (default)  no server, one file.        SYLVAN_SQLITE_PATH=sylvan_cache.db (default: next to storage.py)
     Postgres (optional) needs a server + psycopg2.  SYLVAN_STORE=postgres
                                                     SYLVAN_DB_URL=postgresql://user:pass@host:5432/dbname
 
@@ -17,9 +17,13 @@ recomputes. Never commit the .db file or a database URL (it contains a password)
 
 import json
 import os
+from pathlib import Path
 import sqlite3
 import time
 from contextlib import closing
+
+# The default SQLite cache sits in the project folder whatever folder the server is started from.
+DEFAULT_SQLITE_PATH = str(Path(__file__).resolve().parent / "sylvan_cache.db")
 
 
 class StoreError(RuntimeError):
@@ -59,7 +63,7 @@ def _escape_like(text):
 # SQLite backend (standard library only)
 # ---------------------------------------------------------------------------
 class SqliteStore(Store):
-    def __init__(self, path="sylvan_cache.db"):
+    def __init__(self, path=DEFAULT_SQLITE_PATH):
         self.path = path
         self.name = f"sqlite:{os.path.basename(path)}"
         try:
@@ -187,7 +191,7 @@ class PostgresStore(Store):
 def get_store():
     kind = os.environ.get("SYLVAN_STORE", "sqlite").strip().lower()
     if kind == "sqlite":
-        return SqliteStore(os.environ.get("SYLVAN_SQLITE_PATH", "sylvan_cache.db"))
+        return SqliteStore(os.environ.get("SYLVAN_SQLITE_PATH", DEFAULT_SQLITE_PATH))
     if kind in ("postgres", "postgresql"):
         dsn = os.environ.get("SYLVAN_DB_URL", "").strip()
         if not dsn:

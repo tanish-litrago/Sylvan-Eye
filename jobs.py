@@ -30,8 +30,8 @@ import traceback
 import uuid
 
 from jobstore import JobStoreError, make_store
-from phase4_matcher import CACHE_LOG, DEMO_ENV, match_plants, run_live, terrain_summary_line
-from phase5_explainer import OllamaExplainer, build_facts, explain, template_explanation
+from phases.phase4_matcher import CACHE_LOG, DEMO_ENV, match_plants, run_live, terrain_summary_line
+from phases.phase5_explainer import OllamaExplainer, build_facts, explain, template_explanation
 from tiers import TIER_DESCRIPTIONS, TIER_LABELS, TIER_ORDER, group_by_tier, order_by_tier
 
 MAX_JOBS = 50          # keep only the newest jobs so memory does not grow forever

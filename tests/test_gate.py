@@ -1,12 +1,12 @@
 """
 Tests for the eligibility gate's cropland rule on the REAL numbers measured so far
-(HANDOFF 7b and the Phase 7 report):  python test_gate.py
+(HANDOFF 7b and the Phase 7 report):  python -m tests.test_gate
 
 Each row: dry-season NDVI, big-swing share by year, and whether the land really is cropland
 (the user's own check on the satellite view). If the cut-off moves, this table shows what changes.
 """
 
-from phase4_matcher import GATE_DRY_FLOOR_MAX, GATE_SWING_WARN, check_eligibility
+from phases.phase4_matcher import GATE_DRY_FLOOR_MAX, GATE_SWING_WARN, check_eligibility
 
 # name, dry NDVI, swing by year, is it cropland?   (True / False / None = unclear; none left)
 SITES = [

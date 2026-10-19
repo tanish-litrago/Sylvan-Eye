@@ -10,7 +10,7 @@ This file turns them into comparable numbers:
   classify_soil_texture(clay, sand) -> "light" / "medium" / "heavy"
 
 Data source: Open-Meteo Historical Weather API (free, no key).
-Run:  python phase4_inputs.py
+Run:  python -m phases.phase4_inputs
 """
 
 import requests
@@ -164,7 +164,7 @@ def main():
 
     print("\nSoil texture class from Phase 1 soil data:")
     try:
-        from phase1_data_pipeline import get_soil_data
+        from phases.phase1_data_pipeline import get_soil_data
         soil = get_soil_data(TEST_LAT, TEST_LON)["surface_soil"]
         clay, sand = soil["clay"]["value"], soil["sand"]["value"]
         print(f"  clay {clay}%, sand {sand}%  ->  {classify_soil_texture(clay, sand)}")

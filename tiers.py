@@ -92,7 +92,7 @@ def order_by_tier(ranked):
 
 
 def main():
-    from phase4_matcher import DEMO_ENV, match_plants
+    from phases.phase4_matcher import DEMO_ENV, match_plants
     ranked, excluded, blank = match_plants(dict(DEMO_ENV))
     groups = group_by_tier(ranked)
     for t in TIER_ORDER:

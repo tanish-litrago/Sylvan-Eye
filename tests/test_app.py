@@ -1,5 +1,5 @@
 """
-Tests for app.py (step 2). Plain asserts:  python test_app.py
+Tests for app.py (step 2). Plain asserts:  python -m tests.test_app
 Needs httpx (only for these tests):  pip install httpx
 """
 
@@ -83,7 +83,7 @@ def test_demo_analysis_end_to_end():
 def test_llm_models_and_explain_routes():
     import json, time
     import jobs
-    from phase5_explainer import template_explanation
+    from phases.phase5_explainer import template_explanation
 
     m = client.get("/llm/models").json()
     assert m["default"] in m["models"] and len(m["models"]) >= 1

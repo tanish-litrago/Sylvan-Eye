@@ -1,13 +1,13 @@
 """
-Tests for run_regions.py, with a fake run_live and temporary files:  python test_run_regions.py
+Tests for run_regions.py, with a fake run_live and temporary files:  python -m tests.test_run_regions
 """
 
 import json
 import tempfile
 from pathlib import Path
 
-import run_regions as rr
-from phase4_matcher import CACHE_LOG, DEMO_ENV
+from scripts import run_regions as rr
+from phases.phase4_matcher import CACHE_LOG, DEMO_ENV
 
 PLANTS = rr.plant_names()
 
@@ -119,8 +119,8 @@ def test_report_option_writes_to_another_file():
 
 
 def test_regression_harness_statuses():
-    import test_regions as tr
-    import fixtures
+    from tests import test_regions as tr
+    from scripts import fixtures
     tmp = Path(tempfile.mkdtemp())
     for slug, water in (("good", 0.0), ("lake", 0.6), ("lake2", 0.6), ("good2", 0.0), ("pend", 0.0)):
         fixtures.save_fixture({"slug": slug}, dict(DEMO_ENV), terrain(water), "2026-10-14", folder=tmp)

@@ -1,7 +1,7 @@
 """
 Checks the safety rules of the Docker files by reading them as text (no Docker, no YAML library).
 
-    python test_docker_files.py
+    python -m tests.test_docker_files
 
 Rules checked (layers 1-3):
   - the page is published on 127.0.0.1 only
@@ -15,7 +15,7 @@ Rules checked (layers 1-3):
 import re
 from pathlib import Path
 
-HERE = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parent.parent      # the project folder
 failures = 0
 
 
@@ -27,7 +27,7 @@ def check(name, ok, detail=""):
 
 
 def read(name):
-    p = HERE / name
+    p = ROOT / name
     return p.read_text(encoding="utf-8").splitlines() if p.exists() else None
 
 
@@ -76,13 +76,13 @@ def literal_secrets(lines):
 
 
 def main():
-    dockerfile, compose = read("Dockerfile"), read("docker-compose.yml")
-    dignore, gignore, example = read(".dockerignore"), read(".gitignore"), read(".env.example")
+    dockerfile, compose = read("docker/Dockerfile"), read("docker/docker-compose.yml")
+    dignore, gignore, example = read(".dockerignore"), read(".gitignore"), read("docker/.env.example")
 
     print("== files exist ==")
-    for name, content in [("Dockerfile", dockerfile), ("docker-compose.yml", compose),
-                          (".dockerignore", dignore), (".gitignore", gignore),
-                          (".env.example", example)]:
+    for name, content in [("docker/Dockerfile", dockerfile), ("docker/docker-compose.yml", compose),
+                          (".dockerignore (project folder)", dignore), (".gitignore", gignore),
+                          ("docker/.env.example", example)]:
         check(f"{name} exists", content is not None)
     if None in (dockerfile, compose, dignore, gignore, example):
         return
@@ -143,6 +143,16 @@ def main():
           "service_healthy" in text and "pg_isready" in text)
     check(".env.example leaves POSTGRES_PASSWORD empty",
           any(re.fullmatch(r"POSTGRES_PASSWORD=\s*", l.strip()) for l in example))
+
+    print("\n== folder layout (v1.2.0) ==")
+    text0 = "\n".join(compose)
+    check("compose builds from the project folder with the Dockerfile in docker/",
+          re.search(r"context:\s*\.\.(\s|$)", text0) is not None
+          and re.search(r"dockerfile:\s*docker/Dockerfile", text0) is not None)
+    check("the project name is fixed (volumes keep their names)",
+          re.search(r"^name:\s*sylvaneye\s*$", text0, re.M) is not None)
+    check("the Dockerfile copies requirements from requirements/",
+          any(l.strip().startswith("COPY") and "requirements/requirements.txt" in l for l in code_lines(dockerfile)))
 
     print("\n== Redis (layer 3) ==")
     check("the app is told to use Redis for job records",

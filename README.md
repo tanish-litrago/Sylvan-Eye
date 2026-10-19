@@ -27,15 +27,15 @@ git clone https://github.com/tanish-litrago/Sylvan-Eye.git
 cd Sylvan-Eye
 python -m venv venv
 venv\Scripts\Activate.ps1          # macOS/Linux: source venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements/requirements.txt
 earthengine authenticate
 ```
 
-The Earth Engine project name `sylvan-eye` is set as `EE_PROJECT` in `phase1_data_pipeline.py` and `phase2_terrain_extraction.py`. Change both to your own Google Cloud project that has Earth Engine enabled.
+The Earth Engine project name `sylvan-eye` is set as `EE_PROJECT` in `phases/phase1_data_pipeline.py` and `phases/phase2_terrain_extraction.py`. Change both to your own Google Cloud project that has Earth Engine enabled.
 
 ## Run the web page
 
-From the project folder (the app refuses to start anywhere else, because it finds `plants.csv` and the cache by relative path):
+From the project folder (the imports need it as the working folder; the plant table `data/plants.csv` and the cache file `sylvan_cache.db` are found from the project's own folders):
 
 ```powershell
 python -m uvicorn app:app --reload
@@ -49,14 +49,17 @@ The app has no login and shows raw error text. Run it on your own computer only.
 
 One command starts the app, Postgres (the cache) and Redis (job records). You still need `earthengine authenticate` once on your own computer: the container uses that login, mounted read-only, and never copies it.
 
+The Docker files live in `docker/`. Run every `docker compose` command from that folder:
+
 ```powershell
+cd docker
 copy .env.example .env
 notepad .env                                  # set SYLVAN_EE_DIR and POSTGRES_PASSWORD (see below)
 docker compose up -d --build
 docker compose ps                             # app, db and redis should say (healthy)
 ```
 
-Then open <http://127.0.0.1:8000>. In `.env`:
+Then open <http://127.0.0.1:8000>. In `docker/.env`:
 
 - `SYLVAN_EE_DIR`: your Earth Engine login folder, with forward slashes, e.g. `C:/Users/YOURNAME/.config/earthengine`.
 - `POSTGRES_PASSWORD`: choose one, letters and digits only. It is applied when the database is first created.
@@ -67,15 +70,15 @@ Ollama stays on your computer (for the GPU). The container reaches it at `host.d
 
 If Redis stops, the page says "The job store (Redis) is not available. Try again in a moment." Start it again with `docker compose start redis` and run the place again; the app needs no restart. Redis keeps nothing on disk, so a job that was running when Redis restarted is gone and the page says "The server no longer knows this job ... Run it again." If the app itself restarts during a job, the job is reported as failed.
 
-Safety: the page is published on `127.0.0.1` only (the app has no login and shows raw error text), Postgres and Redis publish no port, the app runs as a non-root user, and `.env` is excluded from git and from the image. `python test_docker_files.py` checks this from the files.
+Safety: the page is published on `127.0.0.1` only (the app has no login and shows raw error text), Postgres and Redis publish no port, the app runs as a non-root user, and `.env` is excluded from git and from the image. `python -m tests.test_docker_files` checks this from the files. The compose project name is fixed (`sylvaneye`), so the volumes keep their names wherever the folder is.
 
 ## Command line
 
 ```powershell
-python phase4_matcher.py --demo                    # offline, measured Bilaspur values
-python phase4_matcher.py 22.0336 82.2651           # live, any location
-python phase5_explainer.py --demo                  # with the explanation text
-python phase5_explainer.py LAT LON --llm           # explanation rewritten by the local model
+python -m phases.phase4_matcher --demo             # offline, measured Bilaspur values
+python -m phases.phase4_matcher 22.0336 82.2651    # live, any location
+python -m phases.phase5_explainer --demo           # with the explanation text
+python -m phases.phase5_explainer LAT LON --llm    # explanation rewritten by the local model
 ```
 
 ## Optional: the local language model
@@ -87,56 +90,57 @@ Install Ollama, run `ollama pull gemma4:e4b`, and keep it running. The page then
 | Variable | Meaning | Default |
 |---|---|---|
 | `SYLVAN_STORE` | `sqlite` or `postgres` (cache backend) | `sqlite` |
-| `SYLVAN_SQLITE_PATH` | SQLite cache file | `sylvan_cache.db` |
-| `SYLVAN_DB_URL` | Postgres connection string (needs `pip install -r requirements-postgres.txt`) | none |
+| `SYLVAN_SQLITE_PATH` | SQLite cache file | `sylvan_cache.db` in the project folder |
+| `SYLVAN_DB_URL` | Postgres connection string (needs `pip install -r requirements/requirements-postgres.txt`) | none |
 | `SYLVAN_JOBS` | `memory` or `redis` (where job records are kept) | `memory` |
-| `SYLVAN_REDIS_URL` | Redis address, e.g. `redis://localhost:6379/0` (needs `pip install -r requirements-redis.txt`) | none |
+| `SYLVAN_REDIS_URL` | Redis address, e.g. `redis://localhost:6379/0` (needs `pip install -r requirements/requirements-redis.txt`) | none |
 | `SYLVAN_OLLAMA_URL` | Ollama chat endpoint | `http://localhost:11434/api/chat` (in Docker: `http://host.docker.internal:11434/api/chat`) |
 
-Docker also reads `SYLVAN_EE_DIR` and `POSTGRES_PASSWORD` from `.env` (see [Run with Docker](#run-with-docker)); compose sets the store and Redis variables itself.
+Docker also reads `SYLVAN_EE_DIR` and `POSTGRES_PASSWORD` from `docker/.env` (see [Run with Docker](#run-with-docker)); compose sets the store and Redis variables itself.
 
 ## Plant data
 
-`plants.csv` holds 32 species. **A blank cell means "not found", never a guess,** and every row carries the URL of the sheet its numbers came from. After editing, run:
+`data/plants.csv` holds 32 species. **A blank cell means "not found", never a guess,** and every row carries the URL of the sheet its numbers came from. After editing, run:
 
 ```powershell
-python validate_plants.py
+python -m scripts.validate_plants
 ```
 
 ## Tests
 
-Plain scripts, no framework. Each prints a closing line when it passes.
+Plain scripts, no framework. From the project folder:
 
 ```powershell
-python test_tiers.py       python test_jobs.py        python test_app.py
-python test_gate.py        python test_plants.py      python test_run_live.py
-python test_run_regions.py python test_storage.py    python test_jobstore.py
-python test_docker_files.py
-python test_fixtures.py    python test_regions.py     # need fixtures/ (see below)
+python -m tests                  # every test file, one line each; skipped parts are shown
+python -m tests jobs storage     # only some files
+python -m tests.test_jobs        # one file, with its full output
 ```
 
-`test_jobstore.py` always tests the memory store; add `SYLVAN_TEST_REDIS_URL` (a Redis database you do not need: it deletes `sylvan:job:*` keys there) to include Redis, or run it inside Docker: `docker compose run --rm -e SYLVAN_TEST_REDIS_URL=redis://redis:6379/15 app python test_jobstore.py`. `test_app.py` needs `httpx`, and `fixtures/` is created by `python export_fixtures.py` (the six original test sites) and `python run_regions.py` (the Phase 7 sites). `run_regions.py` runs sites listed in `phase7_sites.json` and compares the result with expectations written *before* the run; it refuses a site until those are filled in.
+`test_fixtures` and `test_regions` need `data/fixtures/` (created by `python -m scripts.export_fixtures` for the six original test sites and `python -m scripts.run_regions` for the Phase 7 sites). `run_regions` runs the sites listed in `data/phase7_sites.json` and compares the result with expectations written *before* the run; it refuses a site until those are filled in. `test_app` needs `httpx`.
+
+`test_jobstore` always tests the memory store; set `SYLVAN_TEST_REDIS_URL` (a Redis database you do not need: it deletes `sylvan:job:*` keys there) to include Redis, or run it inside Docker, from the `docker/` folder: `docker compose run --rm -e SYLVAN_TEST_REDIS_URL=redis://redis:6379/15 app python -m tests.test_jobstore`.
+
+The rainfall check against published normals (offline) is `python -m scripts.check_rainfall`.
 
 ## Project layout
 
 | Path | Role |
 |---|---|
-| `phase1_data_pipeline.py`, `phase2_terrain_extraction.py`, `phase4_inputs.py` | Data: soil, terrain, climate |
-| `phase4_matcher.py` | Eligibility gate and plant matcher |
-| `tiers.py` | Strong / Likely / Caution grouping |
-| `phase5_explainer.py` | Fact sheet, fixed-rules text, optional model rewrite, claim guard |
-| `storage.py` | Measurement cache (SQLite or Postgres) |
-| `jobs.py`, `jobstore.py`, `app.py`, `static/` | Background jobs, where their records are kept (memory or Redis), web routes, the page |
-| `Dockerfile`, `docker-compose.yml`, `.dockerignore`, `.env.example` | Docker setup (app, Postgres, Redis) |
-| `plants.csv`, `validate_plants.py` | Plant requirements and their checker |
-| `fixtures.py`, `export_fixtures.py`, `run_regions.py`, `phase7_sites.json` | Saved measurements and regional testing |
+| `app.py`, `jobs.py`, `jobstore.py`, `storage.py`, `tiers.py`, `static/` | The web app: routes, background jobs, where their records are kept (memory or Redis), the measurement cache (SQLite or Postgres), Strong / Likely / Caution grouping, the page |
+| `phases/` | `phase1_data_pipeline`, `phase2_terrain_extraction`, `phase4_inputs` (soil, terrain, climate), `phase4_matcher` (eligibility gate and plant matcher), `phase5_explainer` (fact sheet, fixed-rules text, optional model rewrite, claim guard) |
+| `data/` | `plants.csv`, `rainfall_reference.csv`, `phase7_sites.json`, `phase7_report.md`, `fixtures/` (saved measurements of the test sites) |
+| `scripts/` | `validate_plants`, `export_fixtures`, `run_regions`, `check_rainfall`, and `fixtures` (the loader for `data/fixtures`); run as `python -m scripts.<name>` |
+| `tests/` | all tests; `python -m tests` runs them |
+| `requirements/` | `requirements.txt`, `requirements-postgres.txt`, `requirements-redis.txt` |
+| `docker/` | `Dockerfile`, `docker-compose.yml`, `.env.example` (copy to `docker/.env`) |
+| `.dockerignore` | stays in the project folder: it applies to the Docker build context |
 | `HANDOFF.md` | Full state, decisions, findings and next steps |
 | `CHANGELOG.md` | Release notes |
 
 ## Known limits
 
 - The built-up warning can miss houses on wooded hill slopes; barren natural land also gets the bare-or-built-up warning.
-- Gate thresholds rest on few sites. Rainfall readings at Leh and Solapur look high and are unverified.
+- Gate thresholds rest on few sites. The rainfall reading at Leh was checked against published normals and is far too high; the page now says so at 2,000 m and above. Solapur is inconclusive, and other mountain or rain-shadow places are unchecked.
 - 14 of 32 plants have no stated absolute rainfall minimum, and only 18 have any altitude limit.
 - One analysis runs at a time. Job records live in memory, or in Redis with `SYLVAN_JOBS=redis` (Docker); either way the work runs in threads inside the app, so a restart cuts off a running job and it is reported as failed. Redis holds job records only (one hour, nothing on disk, no password, not reachable from outside Docker); the optional model's fact sheet stays in the app's memory, so after a restart the rewrite button on an old analysis asks you to run the place again.
 

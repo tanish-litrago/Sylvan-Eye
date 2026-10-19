@@ -1,8 +1,8 @@
 """
-Save the measurements for the test sites as fixtures/<slug>.json (see fixtures.py).
+Save the measurements for the test sites as data/fixtures/<slug>.json (see scripts/fixtures.py).
 
-    python export_fixtures.py             all sites
-    python export_fixtures.py khapri      only the named site(s) (the slugs are in fixtures.py)
+    python -m scripts.export_fixtures             all sites
+    python -m scripts.export_fixtures khapri      only the named site(s) (the slugs are in fixtures.py)
 
 Uses the cache, so a site you have already analysed takes seconds. A site that is not in the
 cache needs Earth Engine and takes 1-2 minutes. One failing site does not stop the others.
@@ -11,8 +11,8 @@ cache needs Earth Engine and takes 1-2 minutes. One failing site does not stop t
 import sys
 from datetime import date
 
-from fixtures import SITES, save_fixture
-from phase4_matcher import CACHE_LOG, run_live
+from scripts.fixtures import SITES, save_fixture
+from phases.phase4_matcher import CACHE_LOG, run_live
 
 
 def main(wanted):

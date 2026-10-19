@@ -8,7 +8,7 @@ What this script produces for one location:
   - a coarse land-cover split: water-or-wet-surface / bare-or-built / sparse vegetation / dense vegetation
   - elevation and slope (from SRTM, 30 m)
 
-Run:  python phase2_terrain_extraction.py
+Run:  python -m phases.phase2_terrain_extraction
 Needs the same venv and Earth Engine login as Phase 1.
 """
 

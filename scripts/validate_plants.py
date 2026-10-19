@@ -4,8 +4,8 @@ Sylvan Eye — Phase 3: plant database validator.
 Checks plants.csv for mistakes while you fill it in from ECOCROP datasheets.
 It never edits the file and never guesses values.
 
-Run:  python validate_plants.py            (checks plants.csv)
-      python validate_plants.py my.csv     (checks another file)
+Run:  python -m scripts.validate_plants            (checks data/plants.csv)
+      python -m scripts.validate_plants my.csv     (checks another file)
 
 Column meaning:
     *_opt_min / *_opt_max : the typical or "grows best" range stated by the source
@@ -19,6 +19,7 @@ Plus: pH between 0 and 14, rainfall not negative, plausible temperatures,
 a source for any row that has numbers, soil_texture in an allowed set.
 """
 
+from pathlib import Path
 import csv
 import sys
 
@@ -101,7 +102,7 @@ def check_row(row):
 
 
 def main():
-    path = sys.argv[1] if len(sys.argv) > 1 else "plants.csv"
+    path = sys.argv[1] if len(sys.argv) > 1 else str(Path(__file__).resolve().parent.parent / "data" / "plants.csv")
     with open(path, newline="", encoding="utf-8") as f:
         rows = list(csv.DictReader(f))
 

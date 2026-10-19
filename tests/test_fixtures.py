@@ -1,15 +1,15 @@
 """
-Tests on REAL saved measurements:  python test_fixtures.py
+Tests on REAL saved measurements:  python -m tests.test_fixtures
 
 Turns the gate results recorded in HANDOFF section 7b into tests, run through the same job
-layer the web page uses. Needs fixtures/ from `python export_fixtures.py`; a site whose
+layer the web page uses. Needs data/fixtures/ from `python -m scripts.export_fixtures`; a site whose
 fixture is missing is reported as SKIPPED, never silently passed.
 """
 
 import time
 
 import jobs
-from fixtures import SITES, load_fixture
+from scripts.fixtures import SITES, load_fixture
 
 REAL_RUN_LIVE = jobs.run_live
 
@@ -89,7 +89,7 @@ if __name__ == "__main__":
     for s in SITES:
         r = analyse(s["slug"])
         if r is None:
-            print(f"SKIPPED {s['slug']}: no fixture (run python export_fixtures.py)")
+            print(f"SKIPPED {s['slug']}: no fixture (run python -m scripts.export_fixtures)")
             skipped.append(s["slug"])
             continue
         EXPECTED[s["slug"]](r)

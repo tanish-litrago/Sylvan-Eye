@@ -1,14 +1,14 @@
 """
-Tests for run_live with the three data sources replaced by fakes:  python test_run_live.py
+Tests for run_live with the three data sources replaced by fakes:  python -m tests.test_run_live
 Covers the Phase 7 lake finding: open water has no soil, so a blocked site must give the
 blocked answer instead of crashing.
 """
 
-import phase1_data_pipeline
-import phase2_terrain_extraction
-import phase4_inputs
+from phases import phase1_data_pipeline
+from phases import phase2_terrain_extraction
+from phases import phase4_inputs
 import jobs
-from phase4_matcher import run_live
+from phases.phase4_matcher import run_live
 
 SOIL = {"surface_soil": {"ph": {"value": 6.5}, "clay": {"value": 20}, "sand": {"value": 40}}}
 CLIMATE = {"annual_rainfall_mm": 1200, "annual_mean_temp_c": 25.0}

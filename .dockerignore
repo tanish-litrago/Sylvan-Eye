@@ -1,9 +1,10 @@
-# Keeps secrets, local data and clutter out of the image.
+# Keeps secrets, local data and clutter out of the image. This file must stay in the project
+# folder (the build context), not in docker/.
 # (A pattern without ** only matches in the project root, hence the **/ forms.)
-.env
-.env.*
+**/.env
+**/.env.*
 **/*.db
-venv/
+**/venv/
 .git
 **/__pycache__
 **/*.pyc

@@ -1,5 +1,5 @@
 """
-Tests for jobs.py. Plain asserts, no network, no Earth Engine:  python test_jobs.py
+Tests for jobs.py. Plain asserts, no network, no Earth Engine:  python -m tests.test_jobs
 run_live is replaced by a fake that we control step by step with threading Events.
 """
 
@@ -8,8 +8,8 @@ import threading
 import time
 
 import jobs
-from phase4_matcher import CACHE_LOG, DEMO_ENV, match_plants
-from phase5_explainer import template_explanation
+from phases.phase4_matcher import CACHE_LOG, DEMO_ENV, match_plants
+from phases.phase5_explainer import template_explanation
 
 REAL_RUN_LIVE = jobs.run_live
 

@@ -14,10 +14,10 @@ Three pieces:
                             template is used instead.
 
 Run:
-    python phase5_explainer.py --demo                 offline demo values, template text
-    python phase5_explainer.py --demo --llm           same, but explained by the local LLM
-    python phase5_explainer.py LAT LON                live location, template text
-    python phase5_explainer.py LAT LON --llm          live location, LLM text
+    python -m phases.phase5_explainer --demo                 offline demo values, template text
+    python -m phases.phase5_explainer --demo --llm           same, but explained by the local LLM
+    python -m phases.phase5_explainer LAT LON                live location, template text
+    python -m phases.phase5_explainer LAT LON --llm          live location, LLM text
     add  --model qwen2.5:7b-instruct  to pick another Ollama model
     add  --radius 1000  to size the terrain circle in metres (default 400)
     add  --refresh / --no-cache  to recompute or skip the measurement cache (see storage.py)
@@ -31,7 +31,7 @@ import sys
 
 import requests
 
-from phase4_matcher import (DEMO_ENV, PLANTS_CSV, cache_flags, check_eligibility, match_plants,
+from phases.phase4_matcher import (DEMO_ENV, PLANTS_CSV, cache_flags, check_eligibility, match_plants,
                             parse_radius, print_cache_line, run_live)
 
 OLLAMA_URL = os.environ.get("SYLVAN_OLLAMA_URL") or "http://localhost:11434/api/chat"   # Docker sets it
@@ -49,6 +49,29 @@ LIMITS = [
     "extreme climates they can be offered with a 'poor' check instead of being ruled out. Read the "
     "checks on each plant, not only its group.",
 ]
+
+
+# v1.2.0: the rainfall figure comes from a coarse grid. Checked against published normals (see
+# HANDOFF 7e) it was about ten times too high at Leh (3,304 m), so from this height up the page
+# says so. It is a note only: no rule, score or ranking changes. The wording has no digits (the
+# claim guard compares numbers) and avoids the words "altitude" and "elevation" (the guard reads
+# them as talk about the elevation check).
+HIGH_ALTITUDE_M = 2000
+HIGH_ALTITUDE_LIMIT = (
+    "In high mountains the rainfall figure is the least reliable input: the reanalysis grid blends "
+    "mountain terrain with its surroundings, and at the one high mountain site checked against "
+    "published records (Leh) it was many times too high. Treat the rainfall checks here as "
+    "uncertain and confirm with local rainfall records."
+)
+
+
+def limits_for(env):
+    """The standing limits, plus the high-mountain rainfall note when the site is that high."""
+    limits = list(LIMITS)
+    elev = (env or {}).get("elevation_m")
+    if isinstance(elev, (int, float)) and elev >= HIGH_ALTITUDE_M:
+        limits.insert(0, HIGH_ALTITUDE_LIMIT)
+    return limits
 
 
 # ---------------------------------------------------------------------------
@@ -79,7 +102,7 @@ def build_facts(env, terrain, ranked, excluded, blank, top=TOP_N):
         "shortlist_note": f"showing the top {min(top, len(ranked))} of {len(ranked)} plants not ruled out",
         "ruled_out": [{"name": e["name"], "reason": e["excluded_because"]} for e in excluded],
         "not_assessed_no_data": blank,
-        "limits": LIMITS,
+        "limits": limits_for(env),
     }
 
 

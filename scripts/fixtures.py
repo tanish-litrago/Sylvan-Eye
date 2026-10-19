@@ -5,17 +5,17 @@ Each fixture file holds exactly what run_live() returned for a site: the matcher
 environment and the terrain measurement. With them the web layer can be tested on real data
 without Earth Engine, and the gate results written down in HANDOFF section 7b become tests.
 
-    python export_fixtures.py     run once on a machine with the cache (seconds per cached
+    python -m scripts.export_fixtures     run once on a machine with the cache (seconds per cached
                                   site; 1-2 minutes per site that is not cached yet)
 
-Files go in fixtures/<slug>.json. They are measurements, not verdicts: the rules are always
+Files go in data/fixtures/<slug>.json. They are measurements, not verdicts: the rules are always
 run again on them.
 """
 
 import json
 from pathlib import Path
 
-FIXTURE_DIR = Path(__file__).resolve().parent / "fixtures"
+FIXTURE_DIR = Path(__file__).resolve().parent.parent / "data" / "fixtures"
 
 # slug, name, latitude, longitude, radius in metres. Same places as SITES in static/app.js,
 # plus the ash dyke at 1000 m (the case the gate is known to miss).

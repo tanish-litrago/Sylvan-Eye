@@ -2,10 +2,10 @@
 Sylvan Eye, Phase 7: run the matcher on sites in several regions and compare the result with
 what YOU expected, written down BEFORE the run.
 
-    python run_regions.py                     all sites in phase7_sites.json
-    python run_regions.py jaisalmer shimla    only the named sites (slugs)
-    python run_regions.py --refresh           ignore the cache and measure again
-    python run_regions.py --include-unverified   run sites whose coordinates you have not
+    python -m scripts.run_regions                     all sites in phase7_sites.json
+    python -m scripts.run_regions jaisalmer shimla    only the named sites (slugs)
+    python -m scripts.run_regions --refresh           ignore the cache and measure again
+    python -m scripts.run_regions --include-unverified   run sites whose coordinates you have not
                                                  checked (for a first look only)
 
 The rules of the protocol (the script enforces them):
@@ -15,7 +15,7 @@ The rules of the protocol (the script enforces them):
   * plant names must be spelled as in plants.csv (a typo would silently never match).
 Tip: commit phase7_sites.json before running. The commit time proves the order.
 
-Output: phase7_report.md (expected against actual, per site) and fixtures/<slug>.json (the
+Output: data/phase7_report.md (expected against actual, per site) and data/fixtures/<slug>.json (the
 measurements, so the site can become a regression test without Earth Engine).
 A first run of a new site takes 1-2 minutes (Earth Engine); cached sites take seconds.
 """
@@ -30,13 +30,14 @@ from datetime import date
 from pathlib import Path
 
 import jobs
-from fixtures import save_fixture
-from phase4_matcher import CACHE_LOG
-from phase4_matcher import run_live as REAL_RUN_LIVE
+from phases.phase4_matcher import CACHE_LOG
+from phases.phase4_matcher import run_live as REAL_RUN_LIVE
+from scripts.fixtures import save_fixture
 
-ROOT = Path(__file__).resolve().parent
-SITES_FILE = ROOT / "phase7_sites.json"
-REPORT_FILE = ROOT / "phase7_report.md"
+ROOT = Path(__file__).resolve().parent.parent          # the project folder
+DATA = ROOT / "data"
+SITES_FILE = DATA / "phase7_sites.json"
+REPORT_FILE = DATA / "phase7_report.md"
 GATES = ("none", "warning", "blocked")
 REQUIRED = ("slug", "region", "name", "lat", "lon", "radius_m")
 ENV_COLUMNS = [("annual_rainfall_mm", "Rain mm"), ("annual_mean_temp_c", "Temp C"), ("ph", "pH"),
@@ -49,7 +50,7 @@ def load_sites(path=SITES_FILE):
 
 
 def plant_names():
-    with open(ROOT / "plants.csv", newline="", encoding="utf-8") as f:
+    with open(DATA / "plants.csv", newline="", encoding="utf-8") as f:
         return [row["common_name"] for row in csv.DictReader(f)]
 
 
@@ -210,7 +211,7 @@ def main(argv=None, sites_path=SITES_FILE, report_path=REPORT_FILE, fixtures_dir
     ap.add_argument("slugs", nargs="*", help="only these sites")
     ap.add_argument("--refresh", action="store_true", help="measure again, ignore the cache")
     ap.add_argument("--include-unverified", action="store_true", help="also run sites not marked verified")
-    ap.add_argument("--report", help="write the report here instead of phase7_report.md (use it when re-running a few sites)")
+    ap.add_argument("--report", help="write the report here instead of data/phase7_report.md (use it when re-running a few sites)")
     args = ap.parse_args(argv)
 
     sites = load_sites(sites_path)

@@ -1,8 +1,8 @@
 """
-Tests for tiers.py. Plain asserts, no test framework:  python test_tiers.py
+Tests for tiers.py. Plain asserts, no test framework:  python -m tests.test_tiers
 """
 
-from phase4_matcher import DEMO_ENV, match_plants
+from phases.phase4_matcher import DEMO_ENV, match_plants
 from tiers import SCORED, TIER_ORDER, group_by_tier, order_by_tier, tier_for
 
 

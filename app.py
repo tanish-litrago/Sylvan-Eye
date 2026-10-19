@@ -25,8 +25,8 @@ from pydantic import BaseModel, Field
 
 import jobs
 from jobstore import JobStoreError
-from phase4_matcher import DEFAULT_RADIUS
-from phase5_explainer import OLLAMA_MODEL
+from phases.phase4_matcher import DEFAULT_RADIUS, PLANTS_CSV
+from phases.phase5_explainer import OLLAMA_MODEL
 
 # Paths are built from this file's location, not from the folder you launch the server in,
 # so the app finds its page no matter where you start it from.
@@ -36,13 +36,12 @@ STATIC_DIR = BASE_DIR / "static"
 LLM_MODELS = [OLLAMA_MODEL]   # qwen2.5:7b-instruct was dropped (user decision, 2026-10-10): see HANDOFF section 8
 MAX_RADIUS_M = 5000   # a sanity ceiling I chose, not a rule from the data: change it if you need to
 
-# plants.csv and the cache file (sylvan_cache.db) are found relative to the folder the server
-# is started from. Started anywhere else, every run would fail (no plants.csv) or quietly start
-# a new empty cache, so every place would look new and take 1-2 minutes. Fail loudly instead.
-if not (Path.cwd() / "plants.csv").exists():
-    raise SystemExit("Start the server from the project folder (the one that contains "
-                     "plants.csv), e.g.  cd \"C:\\Projects\\Sylvan Eye\"  then  "
-                     "python -m uvicorn app:app --reload")
+# The plant table (data/plants.csv) and the SQLite cache file (sylvan_cache.db, next to this file)
+# are found from the project's own folders, not from where the server is started. Imports
+# (phases, jobs, ...) do need the project folder as the working folder: start with
+#   cd "C:\\Projects\\Sylvan Eye"  then  python -m uvicorn app:app --reload
+if not Path(PLANTS_CSV).exists():
+    raise SystemExit(f"Plant table not found at {PLANTS_CSV}: check the folder layout (data/plants.csv).")
 
 app = FastAPI(title="Sylvan Eye")
 

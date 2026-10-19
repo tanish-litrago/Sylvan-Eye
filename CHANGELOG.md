@@ -1,5 +1,26 @@
 # Changelog
 
+## Unreleased (v1.2.0 in progress)
+
+### Changed: folder layout
+
+The flat project folder is now organised. Phases moved to `phases/`, tests to `tests/`, requirements to `requirements/`, Docker files to `docker/`, data files (`plants.csv`, `rainfall_reference.csv`, `phase7_sites.json`, `phase7_report.md`, `fixtures/`) to `data/`, helper programs (`validate_plants`, `export_fixtures`, `run_regions`, `check_rainfall`, `fixtures`) to `scripts/`. `app.py`, `jobs.py`, `jobstore.py`, `storage.py`, `tiers.py`, `static/` and `.dockerignore` stay in the project folder.
+
+What you need to know when upgrading:
+- Commands changed, always run from the project folder: `python -m phases.phase4_matcher --demo`, `python -m scripts.validate_plants`, `python -m tests` (all tests) or `python -m tests.test_jobs` (one). `python -m uvicorn app:app --reload` is unchanged.
+- `pip install -r requirements/requirements.txt`.
+- Docker: run `docker compose` from the `docker/` folder, and move your `.env` to `docker/.env`. The compose project name is fixed to `sylvaneye`, so the volumes (your cache) keep their names.
+- The SQLite cache default is now next to `storage.py`, which is the same place as before when started from the project folder, and the plant table is found from the code's location, so the app no longer refuses to start from another folder (imports still need the project folder).
+
+### Added
+
+- Rainfall check against published station or district normals (`data/rainfall_reference.csv`, `python -m scripts.check_rainfall`): Leh is far too high (836 mm against about 90 mm); the other test sites are within about 0.94x to 1.31x, mostly above; Solapur is inconclusive.
+- A limit note on the page at 2,000 m and above: the rainfall figure is the least reliable input in high mountains. A note only; no rule, score or ranking changes.
+
+### Tested
+
+- All 14 test files pass in the new layout (`python -m tests`), including against a real Redis. Not tested: the Docker build with the new paths.
+
 ## v1.1.0 - 2026-10-18
 
 Docker, built in three layers: the app, Postgres as the cache, and Redis for job records. **Rules decide; the language model only explains, and it is off by default** (unchanged; the claim guard was not touched). Without Docker everything works as in v1.0.0.

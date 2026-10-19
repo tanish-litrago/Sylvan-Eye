@@ -1,19 +1,19 @@
 """
-Regression test on the Phase 7 sites:  python test_regions.py
+Regression test on the Phase 7 sites:  python -m tests.test_regions
 
-Uses the saved measurements in fixtures/ (no Earth Engine). For every site in phase7_sites.json:
+Uses the saved measurements in data/fixtures/ (no Earth Engine). For every site in phase7_sites.json:
   status accepted     the system must match the (reviewed) expectations           -> else FAIL
   status known_issue  the documented miss must still be there                      -> else FAIL
                       (if it no longer reproduces, the system improved: update the status)
   status pending      no verdict yet, reported only
-A site without a fixture is SKIPPED; run  python run_regions.py <slug>  to create it.
+A site without a fixture is SKIPPED; run  python -m scripts.run_regions <slug>  to create it.
 """
 
 import sys
 import tempfile
 
-import run_regions as rr
-from fixtures import load_fixture
+from scripts import run_regions as rr
+from scripts.fixtures import load_fixture
 
 
 def evaluate(sites, fixtures_folder=None):
@@ -50,7 +50,7 @@ def main():
     ran = sum(r["outcome"] != "SKIPPED" for r in results)
     print(f"\n{ran} site(s) checked, {len(results) - ran} skipped, {bad} failed")
     if ran == 0:
-        print("Nothing was tested: create the fixtures first (python run_regions.py).")
+        print("Nothing was tested: create the fixtures first (python -m scripts.run_regions).")
     return 1 if bad else 0
 
 

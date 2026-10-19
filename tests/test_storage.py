@@ -3,10 +3,10 @@ Tests for storage.py and the cache wiring in phase4_matcher.run_live.
 No Earth Engine or network is needed: the slow fetch functions are replaced by fakes.
 
 Run:
-    python test_storage.py                     SQLite only (temporary file)
+    python -m tests.test_storage                     SQLite only (temporary file)
 Postgres too (use a throwaway database, the tests wipe the 'cache' table):
     $env:SYLVAN_TEST_DB_URL = "postgresql://user:pass@localhost:5432/sylvan_test"
-    python test_storage.py
+    python -m tests.test_storage
 """
 
 import os
@@ -118,27 +118,29 @@ def test_run_live(env_vars):
         os.environ[k] = v
     counts = {"terrain": 0, "soil": 0, "climate": 0}
 
-    fake2 = types.ModuleType("phase2_terrain_extraction")
+    fake2 = types.ModuleType("phases.phase2_terrain_extraction")
     def get_terrain_data(lat, lon, radius_m=400):
         counts["terrain"] += 1
         return {"terrain": {"elevation_m": 269.4}, "location": {"radius_m": radius_m},
                 "seasonality": {"big_swing_by_year": {2024: 0.47}, "best_swing_year": 2024}}
     fake2.get_terrain_data = get_terrain_data
-    fake1 = types.ModuleType("phase1_data_pipeline")
+    fake1 = types.ModuleType("phases.phase1_data_pipeline")
     def get_soil_data(lat, lon):
         counts["soil"] += 1
         return {"surface_soil": {"ph": {"value": 7.5}, "clay": {"value": 33.0}, "sand": {"value": 38.0}}}
     fake1.get_soil_data = get_soil_data
-    sys.modules["phase2_terrain_extraction"], sys.modules["phase1_data_pipeline"] = fake2, fake1
+    import phases
+    sys.modules["phases.phase2_terrain_extraction"], sys.modules["phases.phase1_data_pipeline"] = fake2, fake1
+    phases.phase2_terrain_extraction, phases.phase1_data_pipeline = fake2, fake1
 
-    import phase4_inputs
+    from phases import phase4_inputs
     original = phase4_inputs.get_climate_normals
     def get_climate_normals(lat, lon, *a, **k):
         counts["climate"] += 1
         return {"annual_rainfall_mm": 1520, "annual_mean_temp_c": 26.4}
     phase4_inputs.get_climate_normals = get_climate_normals
 
-    import phase4_matcher as m
+    from phases import phase4_matcher as m
     try:
         storage.get_store().clear()
         env1, terrain1 = m.run_live(22.0797, 82.1409)
