@@ -107,6 +107,66 @@ def test_chir_pine_is_limited_to_400_2300_m():
         assert status == "ruled out" and "2300" in reason, (m, status, reason)
 
 
+FLOORS = {"Arjun": 750, "Mahua": 550, "Peepal": 500, "Tamarind": 350, "Gamhar": 750, "Bael": 570, "Palash": 450,
+          "Casuarina": 200, "Ber": 120, "Siris": 500, "Amaltas": 480, "Baheda": 900, "Deodar": 200,
+          "Indian rosewood": 750}
+
+
+def test_fourteen_species_get_a_rainfall_floor_from_their_stated_minimum():
+    # 2026-10-19, user decision (option A): the sources give only a range and no lower limit, so the lower end of the
+    # range is a hard floor, the same rule as Sal's (2026-10-14). Before this these plants were never ruled out for dryness.
+    import csv
+    rows = {r["common_name"]: r for r in csv.DictReader(open(PLANTS_CSV, encoding="utf-8"))}
+    for name, floor in FLOORS.items():
+        r = rows[name]
+        assert r["rain_abs_min"] == str(floor) == r["rain_opt_min"], (name, r["rain_abs_min"], r["rain_opt_min"])
+        assert "RAINFALL FLOOR" in r["notes"], name
+    # every other plant keeps what it had: no plant is left without a rainfall minimum
+    assert [n for n, r in rows.items() if not r["rain_abs_min"].strip()] == []
+
+
+def test_the_new_floors_rule_plants_out_in_dry_places_but_not_wet_ones():
+    for name, floor in (("Peepal", 500), ("Tamarind", 350), ("Baheda", 900), ("Ber", 120)):
+        status, reason = verdict(name, floor - 1)
+        assert status == "ruled out" and str(floor) in reason, (name, status, reason)
+        assert verdict(name, floor)[0] == "offered", name                     # exactly on the floor is allowed
+    assert verdict("Peepal", 224)[0] == "ruled out"                           # Jaisalmer
+    assert verdict("Ber", 224)[0] == "offered"                                # Ber's floor is only 120 mm
+
+
+ALTITUDE = {"Tamarind": ("", 1500), "Arjun": ("", 1200), "Sal": (100, 1500), "Mango": ("", 1200),
+            "Sissoo / Shisham": ("", 1500), "Jamun": ("", 1800), "Karanj / Pongamia": ("", 1200),
+            "Salai / Indian frankincense": ("", 1150), "Khair / Catechu": ("", 1500), "Mahua": ("", 1200),
+            "Amaltas": ("", 1220), "Khejri": ("", 600), "Babul": ("", 1340)}
+
+
+def test_thirteen_species_get_altitude_limits_from_checked_sources():
+    # 2026-10-20: the user found the values (with an AI tool), Claude opened the pages and checked each quoted line
+    # (CABI could not be opened and is not used). Sal's minimum of 100 m is the user's decision B; Babul's 1340 m is
+    # the user's decision B too (a sheet for another subspecies, the caveat is in its notes). Now every plant has an altitude limit.
+    import csv
+    rows = {r["common_name"]: r for r in csv.DictReader(open(PLANTS_CSV, encoding="utf-8"))}
+    for name, (mn, mx) in ALTITUDE.items():
+        r = rows[name]
+        assert r["alt_min_m"] == str(mn) and r["alt_max_m"] == str(mx), (name, r["alt_min_m"], r["alt_max_m"])
+        assert "ALTITUDE LIMIT" in r["notes"] and "http" in r["notes"], name
+    assert "subspecies" in rows["Babul"]["notes"]                                # the caveat travels with the number
+    assert [n for n, r in rows.items() if not r["alt_min_m"].strip() and not r["alt_max_m"].strip()] == []
+
+
+def test_altitude_limits_stop_lowland_trees_in_the_mountains():
+    # Before this Tamarind, Arjun, Mahua and Amaltas were offered at Leh (3,304 m) and ten of these plants at Shimla.
+    for name, rain, hi in (("Tamarind", 1000, 1500), ("Arjun", 1000, 1200), ("Mango", 1000, 1200)):
+        assert verdict(name, rain, elevation=hi)[0] == "offered", name
+        status, reason = verdict(name, rain, elevation=hi + 1)
+        assert status == "ruled out" and str(hi) in reason, (name, status, reason)
+    for m in (99, 13, 56):                                       # Sal below 100 m (Puri, Ratnagiri)
+        status, reason = verdict("Sal", 1500, elevation=m)
+        assert status == "ruled out" and "100" in reason, (m, status, reason)
+    assert verdict("Sal", 1500, elevation=100)[0] == "offered"
+    assert verdict("Sal", 1500, elevation=1501)[0] == "ruled out"
+
+
 if __name__ == "__main__":
     test_sal_has_a_hard_rainfall_floor_of_1000_mm()
     test_semal_and_amla_are_assessed_from_their_ecocrop_sheets()
@@ -115,4 +175,8 @@ if __name__ == "__main__":
     test_the_last_three_species_come_from_their_ecocrop_sheets()
     test_chir_pine_is_limited_to_400_2300_m()
     test_mango_is_offered_in_the_konkan_but_not_beyond_3500_mm()
+    test_fourteen_species_get_a_rainfall_floor_from_their_stated_minimum()
+    test_the_new_floors_rule_plants_out_in_dry_places_but_not_wet_ones()
+    test_thirteen_species_get_altitude_limits_from_checked_sources()
+    test_altitude_limits_stop_lowland_trees_in_the_mountains()
     print("all plant data tests passed")

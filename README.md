@@ -4,14 +4,14 @@ Give it a location, and it tells you which trees could be planted there, why, an
 
 **Rules decide; the language model only explains, and it is off by default.** Every verdict comes from fixed rules over measured data and a sourced plant table. An optional local language model can rewrite the explanation in prose, but its text is checked claim by claim against the facts and discarded if it fails.
 
-> **Status:** v1.1.0 is a working, documented prototype. It is **not** validated for real planting decisions. Always confirm with a local soil test and local forestry advice. See [Known limits](#known-limits).
+> **Status:** v1.2.0 is a working, documented prototype. It is **not** validated for real planting decisions. Always confirm with a local soil test and local forestry advice. See [Known limits](#known-limits).
 
 ## What it does
 
-1. **Measures the place** (latitude, longitude and a radius, default 400 m): terrain and vegetation from Sentinel-2 imagery over three years (Google Earth Engine), elevation from SRTM, soil from SoilGrids 2.0 / OpenLandMap, and climate from the Open-Meteo historical archive. Measurements are cached.
-2. **Checks eligibility:** blocks open water; warns about built-up or bare ground, active cropland, and land that never greens up.
-3. **Matches 32 plant species** (limits from FAO ECOCROP and World Agroforestry sheets) on rainfall, temperature, pH, soil texture and altitude. A plant outside a stated absolute limit is ruled out with the reason. The rest are grouped as **Strong fit**, **Likely, not fully verified** or **Caution**. They are grouped, not ranked, because the data cannot put them in order.
-4. **Shows everything that matters,** not just a list: warnings first, the conditions, per-check chips for every plant, the ruled-out list with reasons, and the limits of the data.
+1. Measures the place (latitude, longitude and a radius, default 400 m): terrain and vegetation from Sentinel-2 imagery over three years (Google Earth Engine), elevation from SRTM, soil from SoilGrids 2.0 / OpenLandMap, and climate from the Open-Meteo historical archive. Measurements are cached.
+2. Checks eligibility: blocks open water; warns about built-up or bare ground, active cropland, and land that never greens up.
+3. Matches 32 plant species (limits from FAO ECOCROP and World Agroforestry sheets, plus a few Indian government and flora sources, each cited in the plant's row) on rainfall, temperature, pH, soil texture and altitude. A plant outside a stated absolute limit is ruled out with the reason. The rest are grouped as **Strong fit**, **Likely, not fully verified** or **Caution**. They are grouped, not ranked, because the data cannot put them in order.
+4. Shows the whole picture: warnings first, the conditions, per-check chips for every plant, the ruled-out list with reasons, and the limits of the data.
 
 ## Requirements
 
@@ -100,7 +100,7 @@ Docker also reads `SYLVAN_EE_DIR` and `POSTGRES_PASSWORD` from `docker/.env` (se
 
 ## Plant data
 
-`data/plants.csv` holds 32 species. **A blank cell means "not found", never a guess,** and every row carries the URL of the sheet its numbers came from. After editing, run:
+`data/plants.csv` holds 32 species. A blank cell means "not found", never a guess. Every row carries the URL of the sheet its numbers came from. After editing, run:
 
 ```powershell
 python -m scripts.validate_plants
@@ -141,14 +141,14 @@ The rainfall check against published normals (offline) is `python -m scripts.che
 
 - The built-up warning can miss houses on wooded hill slopes; barren natural land also gets the bare-or-built-up warning.
 - Gate thresholds rest on few sites. The rainfall reading at Leh was checked against published normals and is far too high; the page now says so at 2,000 m and above. Solapur is inconclusive, and other mountain or rain-shadow places are unchecked.
-- 14 of 32 plants have no stated absolute rainfall minimum, and only 18 have any altitude limit.
+- Every plant has a rainfall minimum and an altitude limit. Each is the end of a published range for where the tree grows, not a tested limit, so an irrigated planting outside the range may still work. Babul's altitude comes from a sheet for a different subspecies. Chir pine is a Himalayan species and the matcher does not check its range. 16 plants have no absolute rainfall maximum, 14 no absolute temperature limits and 17 no absolute pH limits.
 - One analysis runs at a time. Job records live in memory, or in Redis with `SYLVAN_JOBS=redis` (Docker); either way the work runs in threads inside the app, so a restart cuts off a running job and it is reported as failed. Redis holds job records only (one hour, nothing on disk, no password, not reachable from outside Docker); the optional model's fact sheet stays in the app's memory, so after a restart the rewrite button on an old analysis asks you to run the place again.
 
 The complete list, with the reasons behind each decision, is in [`HANDOFF.md`](HANDOFF.md).
 
 ## Data sources
 
-[FAO ECOCROP](https://ecocrop.apps.fao.org/) and the [World Agroforestry Agroforestree Database](https://apps.worldagroforestry.org/treedb2/) (plant requirements); [SoilGrids 2.0](https://soilgrids.org/) and [OpenLandMap](https://openlandmap.org/) (soil); Copernicus Sentinel-2 and USGS SRTM through [Google Earth Engine](https://earthengine.google.com/); [Open-Meteo](https://open-meteo.com/) (climate).
+[FAO ECOCROP](https://ecocrop.apps.fao.org/) and the [World Agroforestry Agroforestree Database](https://apps.worldagroforestry.org/treedb2/) (plant requirements, with single values from the Botanical Survey of India, ICAR journals, Useful Tropical Plants and the Flora of Pakistan, each cited in the plant's row); [SoilGrids 2.0](https://soilgrids.org/) and [OpenLandMap](https://openlandmap.org/) (soil); Copernicus Sentinel-2 and USGS SRTM through [Google Earth Engine](https://earthengine.google.com/); [Open-Meteo](https://open-meteo.com/) (climate).
 
 ## License
 

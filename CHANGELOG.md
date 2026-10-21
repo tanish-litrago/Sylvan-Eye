@@ -1,12 +1,14 @@
 # Changelog
 
-## Unreleased (v1.2.0 in progress)
+## v1.2.0 - 2026-10-20
+
+Data you can trust. The rules still decide and the language model only explains; the claim guard is unchanged.
 
 ### Changed: folder layout
 
 The flat project folder is now organised. Phases moved to `phases/`, tests to `tests/`, requirements to `requirements/`, Docker files to `docker/`, data files (`plants.csv`, `rainfall_reference.csv`, `phase7_sites.json`, `phase7_report.md`, `fixtures/`) to `data/`, helper programs (`validate_plants`, `export_fixtures`, `run_regions`, `check_rainfall`, `fixtures`) to `scripts/`. `app.py`, `jobs.py`, `jobstore.py`, `storage.py`, `tiers.py`, `static/` and `.dockerignore` stay in the project folder.
 
-What you need to know when upgrading:
+When upgrading:
 - Commands changed, always run from the project folder: `python -m phases.phase4_matcher --demo`, `python -m scripts.validate_plants`, `python -m tests` (all tests) or `python -m tests.test_jobs` (one). `python -m uvicorn app:app --reload` is unchanged.
 - `pip install -r requirements/requirements.txt`.
 - Docker: run `docker compose` from the `docker/` folder, and move your `.env` to `docker/.env`. The compose project name is fixed to `sylvaneye`, so the volumes (your cache) keep their names.
@@ -15,24 +17,49 @@ What you need to know when upgrading:
 ### Added
 
 - Rainfall check against published station or district normals (`data/rainfall_reference.csv`, `python -m scripts.check_rainfall`): Leh is far too high (836 mm against about 90 mm); the other test sites are within about 0.94x to 1.31x, mostly above; Solapur is inconclusive.
-- A limit note on the page at 2,000 m and above: the rainfall figure is the least reliable input in high mountains. A note only; no rule, score or ranking changes.
+- A limit note on the page at 2,000 m and above: the rainfall figure is the least reliable input in high mountains. It is only a note: no rule, score or ranking changes.
+
+### Changed: plant data (`data/plants.csv`, every value with its source in the row's notes)
+
+- Amla: rainfall floor and optimum minimum 630 mm (were 700 and 1500), from Indian sources and zero-irrigation orchards.
+- Chir pine: altitude limits 400-2300 m (Botanical Survey of India); it is no longer offered in the plains.
+- 14 plants (Arjun, Mahua, Peepal, Tamarind, Gamhar, Bael, Palash, Casuarina, Ber, Siris, Amaltas, Baheda, Deodar, Indian rosewood) got a rainfall floor equal to the lower end of their stated range.
+- 13 plants got altitude limits (maxima; Sal also a 100 m minimum): Tamarind, Arjun, Sal, Mango, Sissoo, Jamun, Karanj, Salai, Khair, Mahua, Amaltas, Khejri, Babul. Every plant now has a rainfall minimum and an altitude limit. On the saved sites: Leh no longer offers Amaltas, Arjun, Mahua or Tamarind; Shimla rules out 11 lowland plants; Chir pine is no longer offered at the nine plains sites, and Sal is no longer offered at Puri, Ratnagiri and Varanasi.
+
+### Fixed
+
+- `test_the_last_three_species_come_from_their_ecocrop_sheets` was missing from the run list of `test_plants.py` since v1.0.0, so it never ran. It runs now.
 
 ### Tested
 
-- All 14 test files pass in the new layout (`python -m tests`), including against a real Redis. Not tested: the Docker build with the new paths.
+- All 14 test files pass (`python -m tests`), and `validate_plants` finds no problems; each new data rule has a test that fails on the old data. The Redis checks of `test_jobstore` run only with `SYLVAN_TEST_REDIS_URL` (inside Docker they passed).
+- On Windows with Docker Desktop, run from `docker/`: the three services come up healthy, the cache volume is kept, and the Redis tests pass inside the new image.
+- The values for the altitude limits were found with an AI tool and then checked by opening each page. CABI Compendium pages block automated requests, so no CABI value was used.
+
+### Known limits
+
+- A stated range records where a tree grows. It was not tested as a limit, so an irrigated planting outside it may still work.
+- Babul's 1340 m comes from a sheet for a different subspecies than the common Indian one; Chir pine is a Himalayan species and the matcher does not check geography, so it is still offered at some central and southern sites between 400 and 2300 m.
+- Rainfall: only one high-mountain site (Leh) has a clear answer; Solapur is inconclusive; most references are district averages, not stations.
+- 16 plants have no absolute rainfall maximum, 14 no absolute temperature limits, 17 no absolute pH limits.
+- The v1.1.0 limits below still apply.
+
+### Next
+
+- v2.0.0: better signals and wider testing (building footprints, more regions, map input).
 
 ## v1.1.0 - 2026-10-18
 
-Docker, built in three layers: the app, Postgres as the cache, and Redis for job records. **Rules decide; the language model only explains, and it is off by default** (unchanged; the claim guard was not touched). Without Docker everything works as in v1.0.0.
+Docker, built in three layers: the app, Postgres as the cache, and Redis for job records. The rules still decide and the language model only explains; it is off by default, and the claim guard is unchanged. Without Docker everything works as in v1.0.0.
 
 ### What is new
 
-- **App container** (`Dockerfile`, `docker-compose.yml`): runs as a non-root user. Your existing Earth Engine login folder is mounted **read-only** (path in a git-ignored `.env`, see `.env.example`); credentials never go into the image or the repo. Ollama stays on your computer and the container reaches it at `host.docker.internal` (`SYLVAN_OLLAMA_URL`).
-- **Postgres as the cache:** a `db` service with a healthcheck; the app waits for it. The password is set once in `.env` (`POSTGRES_PASSWORD`, letters and digits only) and is never written in the compose file. A new volume starts with an empty cache, so each place takes 1-2 minutes the first time.
-- **Redis for job records only:** `jobstore.py` keeps the job records (state, result, error) in memory (default) or in Redis (`SYLVAN_JOBS=redis`, `SYLVAN_REDIS_URL`); records expire after one hour. The work still runs in threads inside the app; no worker process.
-- **A job cut off by a server restart is reported as failed** ("The server was restarted while this job was running. Run it again.") instead of hanging. A job whose thread died without saving its result is reported failed too.
-- **Job store down:** the server answers 503 and the page says "The job store (Redis) is not available. Try again in a moment." (it retries a few polls first, so a short blip recovers); a job the server no longer knows says so at once. A real network failure still says "Lost contact with the server".
-- **Safety rules, checked by `test_docker_files.py`:** page published on `127.0.0.1` only; Postgres and Redis publish no port; non-root user; `.dockerignore` excludes `.env`, `*.db`, `venv/` and `.git`; no password or key in `docker-compose.yml`.
+- App container (`Dockerfile`, `docker-compose.yml`): runs as a non-root user. Your existing Earth Engine login folder is mounted read-only (path in a git-ignored `.env`, see `.env.example`); credentials never go into the image or the repo. Ollama stays on your computer and the container reaches it at `host.docker.internal` (`SYLVAN_OLLAMA_URL`).
+- Postgres as the cache: a `db` service with a healthcheck; the app waits for it. The password is set once in `.env` (`POSTGRES_PASSWORD`, letters and digits only) and is never written in the compose file. A new volume starts with an empty cache, so each place takes 1-2 minutes the first time.
+- Redis for job records only: `jobstore.py` keeps the job records (state, result, error) in memory (default) or in Redis (`SYLVAN_JOBS=redis`, `SYLVAN_REDIS_URL`); records expire after one hour. The work still runs in threads inside the app; no worker process.
+- A job cut off by a server restart is reported as failed ("The server was restarted while this job was running. Run it again.") instead of hanging. A job whose thread died without saving its result is reported failed too.
+- Job store down: the server answers 503 and the page says "The job store (Redis) is not available. Try again in a moment." (it retries a few polls first, so a short blip recovers); a job the server no longer knows says so at once. A real network failure still says "Lost contact with the server".
+- Safety rules, checked by `test_docker_files.py`: page published on `127.0.0.1` only; Postgres and Redis publish no port; non-root user; `.dockerignore` excludes `.env`, `*.db`, `venv/` and `.git`; no password or key in `docker-compose.yml`.
 
 ### Tested
 
