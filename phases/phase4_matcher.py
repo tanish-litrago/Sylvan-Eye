@@ -55,6 +55,7 @@ DEFAULT_RADIUS = 400   # metres of terrain circle around the pin
 TERRAIN_TTL = 30 * 24 * 3600       # imagery changes with the seasons and years
 SOIL_TTL = 365 * 24 * 3600         # a 2018 model; effectively static
 CLIMATE_TTL = 365 * 24 * 3600      # a fixed 10-year average
+FOOTPRINT_TTL = 365 * 24 * 3600    # Open Buildings V3 is a fixed May 2023 snapshot
 CACHE_LOG = []                     # filled by run_live: what was a hit or a miss
 
 # ---------------------------------------------------------------------------
@@ -341,16 +342,19 @@ DEMO_ENV = {  # measured for Bilaspur in earlier phases
 
 def run_live(lat, lon, radius_m=DEFAULT_RADIUS, use_cache=True, refresh=False):
     """
-    Fetch terrain, soil and climate for a point and build the matcher's environment.
+    Fetch terrain, soil, climate and building footprints for a point and build the matcher's
+    environment. The footprints (an extra number, v2.0.0) are added to a COPY of the terrain
+    dict as terrain["footprints"], so the return shape (env, terrain) is unchanged.
     Raw measurements are cached (see storage.py); the matcher's verdicts never are.
     use_cache=False skips the cache entirely; refresh=True recomputes and overwrites it.
     """
-    from phases import phase1_data_pipeline, phase2_terrain_extraction, phase4_inputs
+    from phases import phase1_data_pipeline, phase2_footprints, phase2_terrain_extraction, phase4_inputs
     from phases.phase4_inputs import START_YEAR, END_YEAR, classify_soil_texture
     from storage import StoreError, cached, get_store, make_key
     terrain_version = getattr(phase2_terrain_extraction, "CACHE_VERSION", 1)
     soil_version = getattr(phase1_data_pipeline, "CACHE_VERSION", 1)
     climate_version = getattr(phase4_inputs, "CACHE_VERSION", 1)
+    footprint_version = getattr(phase2_footprints, "CACHE_VERSION", 1)
 
     store = None
     if use_cache:
@@ -381,6 +385,16 @@ def run_live(lat, lon, radius_m=DEFAULT_RADIUS, use_cache=True, refresh=False):
         store, make_key("climate", lat, lon, version=climate_version, extra=f"{START_YEAR}-{END_YEAR}"),
         CLIMATE_TTL, lambda: phase4_inputs.get_climate_normals(lat, lon), refresh)
     CACHE_LOG.append(("climate", status))
+    try:
+        footprints, status = cached(
+            store, make_key("footprints", lat, lon, radius_m, footprint_version), FOOTPRINT_TTL,
+            lambda: phase2_footprints.get_footprints(lat, lon, radius_m), refresh)
+    except Exception as e:
+        # An extra number must never stop the analysis. The error is shown, never cached.
+        footprints = {"share": None, "coverage": "error", "error": f"{type(e).__name__}: {str(e)[:150]}"}
+        status = "error"
+    CACHE_LOG.append(("footprints", status))
+    terrain = {**terrain, "footprints": footprints}
 
     soil = soil_all["surface_soil"] if soil_all else None      # None only for a blocked site
     env = {

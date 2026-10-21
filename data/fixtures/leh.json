@@ -6,7 +6,7 @@
     "ph": 8.08,
     "soil_texture": "light"
   },
-  "exported_on": "2026-10-14",
+  "exported_on": "2026-10-21",
   "site": {
     "lat": 34.08,
     "lon": 77.65,
@@ -16,6 +16,15 @@
     "slug": "leh"
   },
   "terrain": {
+    "footprints": {
+      "coverage": "ok",
+      "coverage_check_m": 5000,
+      "license": "CC-BY-4.0",
+      "min_confidence": 0.65,
+      "polygons": 25,
+      "share": 0.0027,
+      "source": "Google Open Buildings V3 polygons (Earth Engine), inferred May 2023"
+    },
     "imagery": {
       "date_range": [
         "2025-01-01",

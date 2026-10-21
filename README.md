@@ -8,7 +8,7 @@ Give it a location, and it tells you which trees could be planted there, why, an
 
 ## What it does
 
-1. Measures the place (latitude, longitude and a radius, default 400 m): terrain and vegetation from Sentinel-2 imagery over three years (Google Earth Engine), elevation from SRTM, soil from SoilGrids 2.0 / OpenLandMap, and climate from the Open-Meteo historical archive. Measurements are cached.
+1. Measures the place (latitude, longitude and a radius, default 400 m): terrain and vegetation from Sentinel-2 imagery over three years (Google Earth Engine), elevation from SRTM, soil from SoilGrids 2.0 / OpenLandMap, and climate from the Open-Meteo historical archive. Measurements are cached. It also measures how much of the circle building outlines cover, as an extra number that does not change the answer (see Known limits).
 2. Checks eligibility: blocks open water; warns about built-up or bare ground, active cropland, and land that never greens up.
 3. Matches 32 plant species (limits from FAO ECOCROP and World Agroforestry sheets, plus a few Indian government and flora sources, each cited in the plant's row) on rainfall, temperature, pH, soil texture and altitude. A plant outside a stated absolute limit is ruled out with the reason. The rest are grouped as **Strong fit**, **Likely, not fully verified** or **Caution**. They are grouped, not ranked, because the data cannot put them in order.
 4. Shows the whole picture: warnings first, the conditions, per-check chips for every plant, the ruled-out list with reasons, and the limits of the data.
@@ -127,7 +127,7 @@ The rainfall check against published normals (offline) is `python -m scripts.che
 | Path | Role |
 |---|---|
 | `app.py`, `jobs.py`, `jobstore.py`, `storage.py`, `tiers.py`, `static/` | The web app: routes, background jobs, where their records are kept (memory or Redis), the measurement cache (SQLite or Postgres), Strong / Likely / Caution grouping, the page |
-| `phases/` | `phase1_data_pipeline`, `phase2_terrain_extraction`, `phase4_inputs` (soil, terrain, climate), `phase4_matcher` (eligibility gate and plant matcher), `phase5_explainer` (fact sheet, fixed-rules text, optional model rewrite, claim guard) |
+| `phases/` | `phase1_data_pipeline`, `phase2_terrain_extraction`, `phase2_footprints` (building outlines), `phase4_inputs` (soil, terrain, climate), `phase4_matcher` (eligibility gate and plant matcher), `phase5_explainer` (fact sheet, fixed-rules text, optional model rewrite, claim guard) |
 | `data/` | `plants.csv`, `rainfall_reference.csv`, `phase7_sites.json`, `phase7_report.md`, `fixtures/` (saved measurements of the test sites) |
 | `scripts/` | `validate_plants`, `export_fixtures`, `run_regions`, `check_rainfall`, and `fixtures` (the loader for `data/fixtures`); run as `python -m scripts.<name>` |
 | `tests/` | all tests; `python -m tests` runs them |
@@ -140,6 +140,7 @@ The rainfall check against published normals (offline) is `python -m scripts.che
 ## Known limits
 
 - The built-up warning can miss houses on wooded hill slopes; barren natural land also gets the bare-or-built-up warning.
+- The building-outline share is an extra number: the gate, the plant matching and the explanation do not use it. The outlines are a May 2023 snapshot, so newer buildings are missing, and some small crowded roofs have no outline, so the share is a floor. If no outline exists within 5 km of the point, the result says there is no footprint data instead of 0%.
 - Gate thresholds rest on few sites. The rainfall reading at Leh was checked against published normals and is far too high; the page now says so at 2,000 m and above. Solapur is inconclusive, and other mountain or rain-shadow places are unchecked.
 - Every plant has a rainfall minimum and an altitude limit. Each is the end of a published range for where the tree grows, not a tested limit, so an irrigated planting outside the range may still work. Babul's altitude comes from a sheet for a different subspecies. Chir pine is a Himalayan species and the matcher does not check its range. 16 plants have no absolute rainfall maximum, 14 no absolute temperature limits and 17 no absolute pH limits.
 - One analysis runs at a time. Job records live in memory, or in Redis with `SYLVAN_JOBS=redis` (Docker); either way the work runs in threads inside the app, so a restart cuts off a running job and it is reported as failed. Redis holds job records only (one hour, nothing on disk, no password, not reachable from outside Docker); the optional model's fact sheet stays in the app's memory, so after a restart the rewrite button on an old analysis asks you to run the place again.
@@ -148,7 +149,7 @@ The complete list, with the reasons behind each decision, is in [`HANDOFF.md`](H
 
 ## Data sources
 
-[FAO ECOCROP](https://ecocrop.apps.fao.org/) and the [World Agroforestry Agroforestree Database](https://apps.worldagroforestry.org/treedb2/) (plant requirements, with single values from the Botanical Survey of India, ICAR journals, Useful Tropical Plants and the Flora of Pakistan, each cited in the plant's row); [SoilGrids 2.0](https://soilgrids.org/) and [OpenLandMap](https://openlandmap.org/) (soil); Copernicus Sentinel-2 and USGS SRTM through [Google Earth Engine](https://earthengine.google.com/); [Open-Meteo](https://open-meteo.com/) (climate).
+[FAO ECOCROP](https://ecocrop.apps.fao.org/) and the [World Agroforestry Agroforestree Database](https://apps.worldagroforestry.org/treedb2/) (plant requirements, with single values from the Botanical Survey of India, ICAR journals, Useful Tropical Plants and the Flora of Pakistan, each cited in the plant's row); [SoilGrids 2.0](https://soilgrids.org/) and [OpenLandMap](https://openlandmap.org/) (soil); Copernicus Sentinel-2 and USGS SRTM through [Google Earth Engine](https://earthengine.google.com/); [Open-Meteo](https://open-meteo.com/) (climate); [Google Open Buildings V3](https://sites.research.google/open-buildings/) building outlines (inferred from imagery in May 2023, licence CC-BY-4.0).
 
 ## License
 

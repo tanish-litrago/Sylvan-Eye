@@ -6,7 +6,7 @@
     "ph": 7.79,
     "soil_texture": "medium"
   },
-  "exported_on": "2026-10-14",
+  "exported_on": "2026-10-21",
   "site": {
     "lat": 26.685,
     "lon": 77.935,
@@ -16,6 +16,15 @@
     "slug": "morena-ravines"
   },
   "terrain": {
+    "footprints": {
+      "coverage": "ok",
+      "coverage_check_m": 5000,
+      "license": "CC-BY-4.0",
+      "min_confidence": 0.65,
+      "polygons": 0,
+      "share": 0.0,
+      "source": "Google Open Buildings V3 polygons (Earth Engine), inferred May 2023"
+    },
     "imagery": {
       "date_range": [
         "2025-01-01",

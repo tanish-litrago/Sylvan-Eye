@@ -6,7 +6,7 @@
     "ph": 7.47,
     "soil_texture": "heavy"
   },
-  "exported_on": "2026-10-10",
+  "exported_on": "2026-10-21",
   "site": {
     "lat": 22.07937,
     "lon": 82.281826,
@@ -15,6 +15,15 @@
     "slug": "ash-dyke-400"
   },
   "terrain": {
+    "footprints": {
+      "coverage": "ok",
+      "coverage_check_m": 5000,
+      "license": "CC-BY-4.0",
+      "min_confidence": 0.65,
+      "polygons": 0,
+      "share": 0.0,
+      "source": "Google Open Buildings V3 polygons (Earth Engine), inferred May 2023"
+    },
     "imagery": {
       "date_range": [
         "2025-01-01",

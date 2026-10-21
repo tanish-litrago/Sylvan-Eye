@@ -189,8 +189,10 @@ def _stage(job):
     # Running a live analysis. run_live adds one entry to CACHE_LOG after each measurement
     # finishes, so what is missing from the log is what it is working on right now.
     done = {name for name, _ in list(CACHE_LOG)}
-    if "climate" in done:
+    if "footprints" in done:
         return "Matching plants"
+    if "climate" in done:
+        return "Fetching building footprints"
     if "soil" in done:
         return "Fetching climate"
     if "terrain" in done:
@@ -256,6 +258,7 @@ def _analyze(p):
         "tier_labels": dict(TIER_LABELS),
         "tier_descriptions": dict(TIER_DESCRIPTIONS),
         "terrain_summary": terrain_summary_line(terrain) if terrain else None,
+        "footprints": terrain.get("footprints") if terrain else None,   # extra number, v2.0.0
         "explanation": {"source": "template", "text": text, "notes": notes},
         "cache": cache,
     }

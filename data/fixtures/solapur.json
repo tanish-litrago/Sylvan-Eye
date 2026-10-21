@@ -6,7 +6,7 @@
     "ph": 7.45,
     "soil_texture": "heavy"
   },
-  "exported_on": "2026-10-14",
+  "exported_on": "2026-10-21",
   "site": {
     "lat": 17.55,
     "lon": 75.9,
@@ -16,6 +16,15 @@
     "slug": "solapur"
   },
   "terrain": {
+    "footprints": {
+      "coverage": "ok",
+      "coverage_check_m": 5000,
+      "license": "CC-BY-4.0",
+      "min_confidence": 0.65,
+      "polygons": 21,
+      "share": 0.0017,
+      "source": "Google Open Buildings V3 polygons (Earth Engine), inferred May 2023"
+    },
     "imagery": {
       "date_range": [
         "2025-01-01",

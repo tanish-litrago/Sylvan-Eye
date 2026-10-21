@@ -117,6 +117,7 @@ def test_run_live(env_vars):
     for k, v in env_vars.items():
         os.environ[k] = v
     counts = {"terrain": 0, "soil": 0, "climate": 0}
+    fp_calls = []
 
     fake2 = types.ModuleType("phases.phase2_terrain_extraction")
     def get_terrain_data(lat, lon, radius_m=400):
@@ -129,9 +130,16 @@ def test_run_live(env_vars):
         counts["soil"] += 1
         return {"surface_soil": {"ph": {"value": 7.5}, "clay": {"value": 33.0}, "sand": {"value": 38.0}}}
     fake1.get_soil_data = get_soil_data
+    fake3 = types.ModuleType("phases.phase2_footprints")
+    def get_footprints(lat, lon, radius_m=400):
+        fp_calls.append(radius_m)
+        return {"share": 0.25, "polygons": 9, "coverage": "ok"}
+    fake3.get_footprints = get_footprints
     import phases
     sys.modules["phases.phase2_terrain_extraction"], sys.modules["phases.phase1_data_pipeline"] = fake2, fake1
+    sys.modules["phases.phase2_footprints"] = fake3
     phases.phase2_terrain_extraction, phases.phase1_data_pipeline = fake2, fake1
+    phases.phase2_footprints = fake3
 
     from phases import phase4_inputs
     original = phase4_inputs.get_climate_normals
@@ -150,6 +158,9 @@ def test_run_live(env_vars):
         check("first call: all three miss", [log1[k] for k in ("terrain", "soil", "climate")] == ["miss"] * 3)
         check("second call: all three hit", [log2[k] for k in ("terrain", "soil", "climate")] == ["hit"] * 3)
         check("slow functions ran exactly once each", counts == {"terrain": 1, "soil": 1, "climate": 1})
+        check("footprints: a miss, then a hit, fetched once, added to terrain",
+              log1["footprints"] == "miss" and log2["footprints"] == "hit" and len(fp_calls) == 1
+              and terrain1["footprints"]["share"] == 0.25)
         check("environment is identical on hit and miss", env1 == env2 and terrain1 == terrain2)
         check("environment values are right", env1["ph"] == 7.5 and env1["soil_texture"] == "medium"
               and env1["elevation_m"] == 269.4 and env1["annual_rainfall_mm"] == 1520)

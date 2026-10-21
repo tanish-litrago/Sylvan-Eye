@@ -6,7 +6,7 @@
     "ph": null,
     "soil_texture": null
   },
-  "exported_on": "2026-10-15",
+  "exported_on": "2026-10-21",
   "site": {
     "lat": 23.249545700690536,
     "lon": 77.34386981384519,
@@ -16,6 +16,15 @@
     "slug": "bhopal-lake"
   },
   "terrain": {
+    "footprints": {
+      "coverage": "ok",
+      "coverage_check_m": 5000,
+      "license": "CC-BY-4.0",
+      "min_confidence": 0.65,
+      "polygons": 0,
+      "share": 0.0,
+      "source": "Google Open Buildings V3 polygons (Earth Engine), inferred May 2023"
+    },
     "imagery": {
       "date_range": [
         "2025-01-01",

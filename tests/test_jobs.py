@@ -62,6 +62,7 @@ def test_demo_job_runs_offline():
     assert r["explanation"]["source"] == "template"
     assert set(r["tier_descriptions"]) == set(r["tier_order"])
     assert r["location"]["demo"] is True and r["terrain_summary"] is None
+    assert r["footprints"] is None                   # demo mode measures nothing
     # the plain-words text names the strong plant before any "caution" plant
     text = r["explanation"]["text"]
     strong = [p["name"] for p in r["tiers"]["strong"]]
@@ -74,7 +75,8 @@ def test_unknown_job_is_none():
 
 
 def test_stages_follow_the_log_and_result_carries_cache():
-    gate_terrain, gate_soil = threading.Event(), threading.Event()
+    gate_terrain, gate_soil, gate_climate = threading.Event(), threading.Event(), threading.Event()
+    footprints = {"share": 0.2, "coverage": "ok", "polygons": 12}
 
     def fake(lat, lon, radius_m, use_cache, refresh):
         CACHE_LOG.append(("store", "sqlite"))
@@ -83,7 +85,9 @@ def test_stages_follow_the_log_and_result_carries_cache():
         gate_soil.wait(5)
         CACHE_LOG.append(("soil", "hit"))
         CACHE_LOG.append(("climate", "hit"))
-        return dict(DEMO_ENV), fake_terrain()
+        gate_climate.wait(5)
+        CACHE_LOG.append(("footprints", "miss"))
+        return dict(DEMO_ENV), {**fake_terrain(), "footprints": footprints}
 
     jobs.run_live = fake
     try:
@@ -92,10 +96,13 @@ def test_stages_follow_the_log_and_result_carries_cache():
         gate_terrain.set()
         wait_stage(jid, "Fetching soil")
         gate_soil.set()
+        wait_stage(jid, "Fetching building footprints")
+        gate_climate.set()
         v = wait_for(jid, {"done", "error"})
         assert v["state"] == "done", v
         assert v["result"]["cache"] == [["store", "sqlite"], ["terrain", "miss"],
-                                        ["soil", "hit"], ["climate", "hit"]]
+                                        ["soil", "hit"], ["climate", "hit"], ["footprints", "miss"]]
+        assert v["result"]["footprints"] == footprints   # reaches the page result
         assert v["result"]["terrain_summary"].startswith("Terrain summary")
     finally:
         jobs.run_live = REAL_RUN_LIVE

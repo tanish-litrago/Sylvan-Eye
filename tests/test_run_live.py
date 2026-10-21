@@ -5,6 +5,7 @@ blocked answer instead of crashing.
 """
 
 from phases import phase1_data_pipeline
+from phases import phase2_footprints
 from phases import phase2_terrain_extraction
 from phases import phase4_inputs
 import jobs
@@ -12,6 +13,7 @@ from phases.phase4_matcher import run_live
 
 SOIL = {"surface_soil": {"ph": {"value": 6.5}, "clay": {"value": 20}, "sand": {"value": 40}}}
 CLIMATE = {"annual_rainfall_mm": 1200, "annual_mean_temp_c": 25.0}
+FOOTPRINTS = {"share": 0.0, "polygons": 0, "coverage": "ok"}
 
 
 def terrain(water):
@@ -29,6 +31,7 @@ def with_sources(water, soil_works):
     phase2_terrain_extraction.get_terrain_data = lambda lat, lon, radius_m=400: terrain(water)
     phase1_data_pipeline.get_soil_data = get_soil
     phase4_inputs.get_climate_normals = lambda lat, lon: CLIMATE
+    phase2_footprints.get_footprints = lambda lat, lon, radius_m=400: FOOTPRINTS   # never reach Earth Engine
 
 
 def test_blocked_water_site_without_soil_returns_the_environment_instead_of_crashing():
