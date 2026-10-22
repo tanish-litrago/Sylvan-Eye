@@ -22,10 +22,23 @@ def test_page_is_served():
 
 def test_static_files_are_served():
     r = client.get("/static/style.css")
-    assert r.status_code == 200 and "--paper" in r.text
+    assert r.status_code == 200 and "--surface" in r.text
     r = client.get("/static/app.js")
     assert r.status_code == 200 and "parsePasted" in r.text
     assert "MSG_STORE_DOWN" in r.text and "MSG_JOB_GONE" in r.text   # the job-store wording (v1.1.0)
+
+
+def test_fonts_and_their_licence_are_served_from_static():
+    """v2.0.0: Atkinson Hyperlegible is bundled (no outside font host); the OFL needs its licence shipped."""
+    css = client.get("/static/style.css").text
+    for name in ("400-normal", "700-normal", "400-italic"):
+        path = f"/static/fonts/atkinson-hyperlegible-latin-{name}.woff2"
+        assert path in css, path                                  # the stylesheet points at it
+        r = client.get(path)
+        assert r.status_code == 200 and r.content[:4] == b"wOF2", path
+    r = client.get("/static/fonts/LICENSE-atkinson-hyperlegible.txt")
+    assert r.status_code == 200 and "SIL Open Font License" in r.text
+    assert "fonts.googleapis.com" not in css and "https://" not in css   # nothing loads from outside
 
 
 def test_job_store_down_gives_503_with_a_message():
@@ -129,6 +142,7 @@ if __name__ == "__main__":
     test_health()
     test_page_is_served()
     test_static_files_are_served()
+    test_fonts_and_their_licence_are_served_from_static()
     test_job_store_down_gives_503_with_a_message()
     test_unknown_route_is_404()
     test_analyze_rejects_bad_input()
