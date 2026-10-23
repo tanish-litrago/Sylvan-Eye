@@ -140,6 +140,16 @@ def compare(site, result):
 
 
 # ---------------------------------------------------------------- the report
+def outlines_text(res):
+    """The extra building-outline number (v2.0.0) for the report: share and count, or why there is none."""
+    fp = res.get("footprints")
+    if not fp:
+        return "-"                                       # not measured (offline demo)
+    if fp.get("coverage") == "ok" and isinstance(fp.get("share"), (int, float)):
+        return f"{fp['share']:.1%} ({fp['polygons']})"
+    return "no data" if fp.get("coverage") == "no_data" else "unavailable"
+
+
 def build_report(rows, run_date):
     ran = [r for r in rows if r["error"] is None]
     errors = [r for r in rows if r["error"] is not None]
@@ -151,12 +161,12 @@ def build_report(rows, run_date):
          "A mismatch is a finding to review: either the system or the expectation is wrong.", "",
          "## Summary", "",
          "| Site | Region | Gate: you / system | " + " | ".join(h for _, h in ENV_COLUMNS) +
-         " | Strong / Likely / Caution | Ruled out | Seconds | Result |",
-         "|" + "---|" * (8 + len(ENV_COLUMNS))]
+         " | Outlines (share, count) | Strong / Likely / Caution | Ruled out | Seconds | Result |",
+         "|" + "---|" * (9 + len(ENV_COLUMNS))]
     for r in rows:
         s = r["site"]
         if r["error"] is not None:
-            L.append(f"| {s['slug']} | {s['region']} | {s['expect_gate']} / - | " + " | ".join("-" for _ in ENV_COLUMNS) + " | - | - | - | ERROR |")
+            L.append(f"| {s['slug']} | {s['region']} | {s['expect_gate']} / - | " + " | ".join("-" for _ in ENV_COLUMNS) + " | - | - | - | - | ERROR |")
             continue
         res = r["result"]
         env = res["facts"]["environment"]
@@ -164,7 +174,7 @@ def build_report(rows, run_date):
         t = res["tiers"]
         counts = " / ".join(str(len(t[x])) for x in res["tier_order"])
         ok = all(c["ok"] for c in r["checks"])
-        L.append(f"| {s['slug']} | {s['region']} | {s['expect_gate']} / {actual_gate(res)} | {vals} | {counts} | "
+        L.append(f"| {s['slug']} | {s['region']} | {s['expect_gate']} / {actual_gate(res)} | {vals} | {outlines_text(res)} | {counts} | "
                  f"{len(res['facts']['ruled_out'])} | {r['seconds']} | {'MATCH' if ok else 'MISMATCH'} |")
 
     L += ["", "## Mismatches to review", ""]
@@ -192,6 +202,7 @@ def build_report(rows, run_date):
         L += [f"### {s['slug']}: {s['name']} ({s['region']})",
               f"- Point {s['lat']}, {s['lon']}, radius {s['radius_m']} m. You saw: {s['land_type']}.",
               f"- {res['terrain_summary']}" if res.get("terrain_summary") else "- Terrain: not measured",
+              f"- Building outlines (extra, not used for matching): {outlines_text(res)}",
               f"- Cache: " + (", ".join(f"{a} {b}" for a, b in res["cache"]) or "none"),
               f"- Warnings: " + (" ".join(f["warnings"]) or "none")]
         for x in res["tier_order"]:

@@ -34,7 +34,12 @@ def fake_run_live(lat, lon, radius_m, use_cache, refresh):
     env = dict(DEMO_ENV)
     if lat == 3.0:
         env["ph"] = None
-    return env, terrain(water=0.6 if lat == 2.0 else 0.0)
+    t = terrain(water=0.6 if lat == 2.0 else 0.0)
+    if lat == 20.0:
+        t["footprints"] = {"share": 0.0564, "polygons": 264, "coverage": "ok"}
+    if lat == 3.0:
+        t["footprints"] = {"share": None, "coverage": "no_data"}
+    return env, t
 
 
 def run(sites, extra=()):
@@ -89,6 +94,12 @@ def test_match_mismatch_error_and_report():
     assert "### wrong-guess-2" in report and "you expected **none**, the system gave **blocked**" in report
     assert "### boom: ERROR" in report and "earth engine says no" in report
     assert "no-ph: no value for pH" in report                           # data coverage section
+    assert "Outlines (share, count)" in report                          # v2.0.0: the extra number is in the table
+    clean_row = next(l for l in report.splitlines() if l.startswith("| clean |"))
+    assert "5.6% (264)" in clean_row
+    assert "no data" in next(l for l in report.splitlines() if l.startswith("| no-ph |"))
+    assert "| - |" in next(l for l in report.splitlines() if l.startswith("| lake |"))   # not measured
+    assert "Building outlines (extra, not used for matching): 5.6% (264)" in report
     assert "Warnings: " in report and "BLOCKED" in report              # details of the lake
     # fixtures saved for the sites that ran, not for the one that failed
     assert (tmp / "fx" / "clean.json").exists() and (tmp / "fx" / "lake.json").exists()
