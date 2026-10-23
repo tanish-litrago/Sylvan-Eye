@@ -1,4 +1,4 @@
-// Sylvan Eye page logic, step 4: the form and the wait. Step 5 draws the real results.
+// Sylvan Eye page logic: the form, the map (v2.0.0), the wait, and the results.
 "use strict";
 
 // Your test sites (from HANDOFF.md). Edit this list to add more.
@@ -50,10 +50,84 @@ function toNumber(text) {
   return Number(t);
 }
 
-function setPoint(lat, lon) {
+// The one place that changes the point: the paste box, the site menu, a map click and a marker
+// drag all come through here. fromMap: the user just acted on the map itself.
+function setPoint(lat, lon, fromMap) {
   $("lat").value = String(lat);
   $("lon").value = String(lon);
+  drawPoint(lat, lon, fromMap);
 }
+
+// ---------------------------------------------------------------- map (v2.0.0)
+// Leaflet is copied into static/vendor/leaflet. The map only helps to choose the point: if it
+// does not load, the form still works. Tiles come from OpenStreetMap's own server, under its tile
+// usage policy: the credit stays visible, the page sends a Referer (the server sets no
+// Referrer-Policy), and nothing is prefetched or stored for offline use. That server is
+// best-effort and may block use without notice. To switch provider, change only the two lines below.
+var TILE_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+var TILE_CREDIT = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+var DEFAULT_RADIUS_M = 400;
+var MapUI = { map: null, marker: null, circle: null };
+
+function round6(x) { return Math.round(x * 1e6) / 1e6; }   // about 0.1 m
+
+function mapRadius() {
+  var r = toNumber($("radius").value);
+  return r !== null && r > 0 ? r : DEFAULT_RADIUS_M;
+}
+
+function initMap() {
+  if (typeof L === "undefined" || !$("map")) { return; }   // the form works without the map
+  var map = L.map("map", { center: [22.5, 80], zoom: 5, worldCopyJump: true });   // all of India
+  L.tileLayer(TILE_URL, { maxZoom: 19, attribution: TILE_CREDIT }).addTo(map);
+  map.on("click", function (e) { pointFromMap(e.latlng); });
+  MapUI.map = map;
+}
+
+function pointFromMap(latlng) {
+  var ll = latlng.wrap();                // a map panned past the date line still gives -180..180
+  $("site").value = "";
+  $("paste").value = "";
+  $("paste-msg").textContent = "";
+  setPoint(round6(ll.lat), round6(ll.lng), true);
+}
+
+// Puts the marker and the radius circle on the point. After a click or drag the view stays where
+// it is; after typing, pasting or a site choice the map moves to show the whole circle.
+function drawPoint(lat, lon, fromMap) {
+  var map = MapUI.map;
+  if (!map || Math.abs(lat) > 90 || Math.abs(lon) > 180) { return; }
+  var at = [lat, lon];
+  if (!MapUI.marker) {
+    // The circle ignores clicks (interactive: false), so a click inside it still places a point.
+    MapUI.circle = L.circle(at, {
+      radius: mapRadius(), color: "#4f5f9e", weight: 2,
+      fillColor: "#a8db49", fillOpacity: 0.25, interactive: false
+    }).addTo(map);
+    MapUI.marker = L.marker(at, {
+      draggable: true, keyboard: false, title: "Selected point (drag to move)",
+      icon: L.divIcon({ className: "pin", iconSize: [44, 44], iconAnchor: [22, 22] })
+    }).addTo(map);
+    MapUI.marker.on("drag", function () { MapUI.circle.setLatLng(MapUI.marker.getLatLng()); });
+    MapUI.marker.on("dragend", function () { pointFromMap(MapUI.marker.getLatLng()); });
+  } else {
+    MapUI.marker.setLatLng(at);
+    MapUI.circle.setLatLng(at);
+  }
+  if (!fromMap) { map.fitBounds(MapUI.circle.getBounds(), { maxZoom: 15, padding: [24, 24] }); }
+}
+
+// Typed coordinates move the marker when the field loses focus (not on every keystroke).
+function drawFromFields() {
+  $("site").value = "";                  // typed coordinates are no longer the chosen test site
+  var lat = toNumber($("lat").value), lon = toNumber($("lon").value);
+  if (lat !== null && lon !== null) { drawPoint(lat, lon, false); }
+}
+$("lat").addEventListener("change", drawFromFields);
+$("lon").addEventListener("change", drawFromFields);
+$("radius").addEventListener("input", function () {
+  if (MapUI.circle) { MapUI.circle.setRadius(mapRadius()); }
+});
 
 function showFormError(msg) {
   var el = $("form-error");
@@ -132,6 +206,7 @@ function startRun(body) {
   $("results").hidden = true;
   $("results").textContent = "";
   $("slow-hint").hidden = true;
+  $("intro").hidden = true;
   $("status-box").hidden = false;
   setStatus("Sending request...", 0);
 
@@ -187,6 +262,7 @@ function fail(run, message) {
   if (run !== currentRun) { return; }
   $("go").disabled = false;
   $("status-box").hidden = true;
+  $("intro").hidden = false;
   showFormError(message);
 }
 
@@ -199,16 +275,22 @@ function el(tag, className, text) {
   return e;
 }
 
-var VERDICT_WORDS = { good: "good", within_limits: "within limits", marginal: "marginal",
-                      poor: "poor", skipped: "no data", ok: "ok" };
-var VERDICT_CLASS = { good: "chip-ok", within_limits: "chip-ok", ok: "chip-ok",
-                      marginal: "chip-marginal", poor: "chip-poor", skipped: "chip-nodata" };
-var FACTOR_LABELS = { rainfall: "Rainfall", temperature: "Temperature", pH: "pH",
-                      texture: "Texture", elevation: "Elevation" };
+var VERDICT_WORDS = {
+  good: "good", within_limits: "within limits", marginal: "marginal",
+  poor: "poor", skipped: "no data", ok: "ok"
+};
+var VERDICT_CLASS = {
+  good: "chip-ok", within_limits: "chip-ok", ok: "chip-ok",
+  marginal: "chip-marginal", poor: "chip-poor", skipped: "chip-nodata"
+};
+var FACTOR_LABELS = {
+  rainfall: "Rainfall", temperature: "Temperature", pH: "pH",
+  texture: "Texture", elevation: "Elevation"
+};
 var ENV_LABELS = [["annual_rainfall_mm", "Rainfall (mm a year)"],
-                  ["annual_mean_temp_c", "Mean temperature (C)"],
-                  ["ph", "Soil pH"], ["soil_texture", "Soil texture"],
-                  ["elevation_m", "Elevation (m)"]];
+["annual_mean_temp_c", "Mean temperature (C)"],
+["ph", "Soil pH"], ["soil_texture", "Soil texture"],
+["elevation_m", "Elevation (m)"]];
 
 function renderResults(r) {
   var root = $("results");
@@ -216,6 +298,8 @@ function renderResults(r) {
   root.appendChild(renderBanner(r));
   if (r.facts.warnings.length > 0) { root.appendChild(renderWarnings(r.facts.warnings)); }
   root.appendChild(renderConditions(r.facts.environment));
+  var outlines = renderFootprints(r.footprints);
+  if (outlines) { root.appendChild(outlines); }
   root.appendChild(renderPlants(r));
   root.appendChild(renderLimits(r));
   root.appendChild(renderRuledOut(r.facts));
@@ -253,7 +337,7 @@ function renderBanner(r) {
   b.appendChild(el("p", "", sub));
   if (!r.location.demo) {
     b.appendChild(el("p", "banner-loc", "Location " + r.location.lat + ", " + r.location.lon +
-                      "  |  radius used: " + r.location.radius_m + " m"));
+      "  |  radius used: " + r.location.radius_m + " m"));
   }
   return b;
 }
@@ -284,6 +368,51 @@ function renderConditions(env) {
   return s;
 }
 
+// An extra number (v2.0.0): the plant matching, the warnings and the explanation never use it.
+// Three states: a share, "no data here" (no outline within 5 km, so 0% would be a guess), or a
+// failed lookup. The licence (CC-BY-4.0) requires the credit, so it is always shown.
+var FP_SOURCE = "Google Open Buildings V3 polygons (Earth Engine), inferred May 2023";
+var FP_LICENSE = "CC-BY-4.0";
+
+function percentText(share) {
+  if (share === 0) { return "0%"; }
+  var p = share * 100;
+  return p < 0.1 ? "<0.1%" : p.toFixed(1) + "%";
+}
+
+function renderFootprints(fp) {
+  if (!fp) { return null; }                       // offline demo: nothing was measured
+  var big, main, limit = null;
+  var km = (fp.coverage_check_m || 5000) / 1000;
+  if (fp.coverage === "ok" && typeof fp.share === "number") {
+    big = percentText(fp.share);
+    main = "of the circle is covered by building outlines (" + fp.polygons +
+      (fp.polygons === 1 ? " outline" : " outlines") + ").";
+    limit = "A May 2023 snapshot, so newer buildings are missing, and some small crowded roofs have no outline, so this is a floor.";
+    if (fp.share === 0) {
+      limit = "No outline falls inside the circle, but the dataset has outlines within " + km +
+        " km, so this is a real zero, not missing data. " + limit;
+    }
+  } else if (fp.coverage === "no_data") {
+    big = "No data";
+    main = "The dataset has no building outlines within " + km +
+      " km of this point, so this page cannot say whether there are buildings here.";
+  } else {
+    big = "Unavailable";
+    main = "The building-outline lookup failed" + (fp.error ? ": " + fp.error : "") +
+      ". The rest of the analysis is not affected.";
+  }
+  var s = el("section", "block also");
+  s.appendChild(el("h2", "also-title", "Also measured, not used for matching"));
+  s.appendChild(el("div", "also-number", big));
+  var text = el("div", "also-text");
+  text.appendChild(el("p", "", main));
+  if (limit) { text.appendChild(el("p", "hint", limit)); }
+  text.appendChild(el("p", "hint", "Source: " + (fp.source || FP_SOURCE) + ". Licence " + (fp.license || FP_LICENSE) + "."));
+  s.appendChild(text);
+  return s;
+}
+
 function renderPlants(r) {
   var s = el("section", "block");
   s.appendChild(el("h2", "", "Plants"));
@@ -295,10 +424,17 @@ function renderPlants(r) {
   r.tier_order.forEach(function (tier) {
     var plants = r.tiers[tier];
     var group = el("div", "tier tier-" + tier);
-    group.appendChild(el("h3", "", r.tier_labels[tier] + " (" + plants.length + ")"));
-    group.appendChild(el("p", "hint", r.tier_descriptions[tier]));
-    if (plants.length === 0) { group.appendChild(el("p", "none", "None.")); }
-    plants.forEach(function (p) { group.appendChild(renderPlant(p)); });
+    if (plants.length === 0) {
+      // An empty group is one line that keeps the rule wording, so an empty tier is still explained.
+      var line = el("p", "tier-empty");
+      line.appendChild(el("strong", "", r.tier_labels[tier] + " (0): "));
+      line.appendChild(el("span", "hint", r.tier_descriptions[tier] + " None here."));
+      group.appendChild(line);
+    } else {
+      group.appendChild(el("h3", "", r.tier_labels[tier] + " (" + plants.length + ")"));
+      group.appendChild(el("p", "hint", r.tier_descriptions[tier]));
+      plants.forEach(function (p) { group.appendChild(renderPlant(p)); });
+    }
     s.appendChild(group);
   });
   return s;
@@ -314,7 +450,7 @@ function renderPlant(p) {
     var c = p.checks[factor];
     var word = VERDICT_WORDS[c.result] || c.result;
     chips.appendChild(el("span", "chip " + (VERDICT_CLASS[c.result] || "chip-nodata"),
-                         (FACTOR_LABELS[factor] || factor) + ": " + word));
+      (FACTOR_LABELS[factor] || factor) + ": " + word));
   });
   p.flags.forEach(function (flag) { chips.appendChild(el("span", "chip chip-flag", "Flag: " + flag)); });
   sum.appendChild(chips);
@@ -324,7 +460,7 @@ function renderPlant(p) {
   Object.keys(p.checks).forEach(function (factor) {
     var c = p.checks[factor];
     ul.appendChild(el("li", "", (FACTOR_LABELS[factor] || factor) + ", " +
-                      (VERDICT_WORDS[c.result] || c.result) + ": " + c.detail));
+      (VERDICT_WORDS[c.result] || c.result) + ": " + c.detail));
   });
   ul.appendChild(el("li", "", "Checks with data: " + p.factors_with_data + ". Tier reason: " + p.tier_reason + "."));
   d.appendChild(ul);
@@ -338,7 +474,7 @@ function renderLimits(r) {
   r.facts.limits.forEach(function (text) { ul.appendChild(el("li", "", text)); });
   s.appendChild(ul);
   s.appendChild(el("p", "", r.location.demo ? "Radius: not used (offline demo)."
-                                             : "Radius used: " + r.location.radius_m + " m. A different radius can change the result."));
+    : "Radius used: " + r.location.radius_m + " m. A different radius can change the result."));
   s.appendChild(el("p", "", r.terrain_summary ? r.terrain_summary : "Terrain was not measured."));
   if (r.cache.length > 0) {
     var store = "off", parts = [];
@@ -369,7 +505,7 @@ function renderRuledOut(facts) {
   }
   if (facts.not_assessed_no_data.length > 0) {
     s.appendChild(el("p", "hint", "Not assessed, no data in the plant database (" +
-                     facts.not_assessed_no_data.length + "): " + facts.not_assessed_no_data.join(", ")));
+      facts.not_assessed_no_data.length + "): " + facts.not_assessed_no_data.join(", ")));
   }
   return s;
 }
@@ -489,7 +625,7 @@ function llmFail(run, message, btn, status, out) {
   status.textContent = "";
   out.textContent = "";
   out.appendChild(el("p", "error", "The local model could not be used: " + message +
-                     " The text above is unchanged."));
+    " The text above is unchanged."));
 }
 
 function renderLlmResult(out, res) {
@@ -520,6 +656,7 @@ function finish(run, job, seconds) {
 }
 
 fillSiteMenu();
+initMap();
 
 // The optional LLM controls only appear if the server answers with a model list.
 fetch("/llm/models")

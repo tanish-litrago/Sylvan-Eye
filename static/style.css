@@ -165,18 +165,18 @@ label {
 
 .check {
   display: flex;
-  gap: 8px;
-  align-items: flex-start;
+  gap: 12px;
+  align-items: center;
+  min-height: 44px;
   font-size: 16px;
   line-height: 24px;
   color: var(--ink);
-  margin: 8px 0;
 }
 
 .check input {
-  margin: 4px 0 0;
-  width: 18px;
-  height: 18px;
+  margin: 0;
+  width: 20px;
+  height: 20px;
   flex: none;
   accent-color: var(--blue);
 }
@@ -557,4 +557,143 @@ h3 {
 .llm-rejected {
   background: var(--orange-tint);
   border-color: var(--orange);
+}
+
+/* ---- map (Leaflet 1.9.4, copied into static/vendor/leaflet) ---- */
+#map {
+  position: relative;
+  z-index: 0;
+  /* keeps Leaflet's own layers below everything else */
+  height: 320px;
+  background: #e8ece2;
+  /* shown while tiles load, or if they are blocked */
+  border: 1px solid var(--field);
+  border-radius: 6px;
+}
+
+#map-hint {
+  margin: 4px 0 16px;
+}
+
+@media (max-width: 60rem) {
+  #map {
+    height: 240px;
+  }
+}
+
+.leaflet-container {
+  font: 400 12px/1.5 "Atkinson Hyperlegible", system-ui, sans-serif;
+}
+
+.leaflet-container:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.leaflet-container a {
+  color: var(--blue-dark);
+}
+
+.leaflet-bar a,
+.leaflet-touch .leaflet-bar a {
+  width: 44px;
+  height: 44px;
+  line-height: 44px;
+}
+
+/* tap targets */
+.leaflet-touch .leaflet-bar a:first-child,
+.leaflet-touch .leaflet-bar a:last-child {
+  border-radius: 6px;
+}
+
+.pin {
+  background: transparent;
+  border: 0;
+  cursor: grab;
+}
+
+.pin::after {
+  /* the point: a dark dot with a white ring, in a 44 px grab area */
+  content: "";
+  display: block;
+  width: 20px;
+  height: 20px;
+  margin: 12px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: var(--ink);
+  border: 3px solid #ffffff;
+}
+
+.pin:active {
+  cursor: grabbing;
+}
+
+/* ---- before the first run ---- */
+.intro {
+  max-width: 40rem;
+  padding: 8px 0;
+}
+
+.intro p {
+  margin: 0 0 8px;
+}
+
+/* ---- the extra number: building outlines ---- */
+.also {
+  display: grid;
+  grid-template-columns: 6.5rem minmax(0, 1fr);
+  grid-template-areas: "num title" "num body";
+  column-gap: 24px;
+  align-items: start;
+  padding: 16px 0;
+  border-top: 1px solid var(--hair);
+  border-bottom: 1px solid var(--hair);
+}
+
+.also-title {
+  grid-area: title;
+  margin: 0 0 4px;
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.also-number {
+  grid-area: num;
+  font-size: 28px;
+  line-height: 36px;
+  font-weight: 700;
+}
+
+.also-text {
+  grid-area: body;
+}
+
+.also-text p {
+  margin: 4px 0;
+  max-width: 60ch;
+}
+
+.also-text .hint {
+  margin: 4px 0;
+}
+
+@media (max-width: 40rem) {
+
+  /* title first, then the number, then the sentence that continues it */
+  .also {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "title" "num" "body";
+  }
+}
+
+/* ---- empty tiers: one line, the rule wording kept ---- */
+.tier-empty {
+  margin: 0;
+}
+
+.plant summary:hover {
+  background: var(--belly);
+  border-radius: 6px;
 }

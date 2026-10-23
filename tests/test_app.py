@@ -41,6 +41,41 @@ def test_fonts_and_their_licence_are_served_from_static():
     assert "fonts.googleapis.com" not in css and "https://" not in css   # nothing loads from outside
 
 
+def test_map_files_are_served_and_loaded_in_order():
+    """v2.0.0: Leaflet 1.9.4 is copied into static/vendor/leaflet (no CDN); BSD-2-Clause needs its licence shipped."""
+    html = client.get("/").text
+    assert 'id="map"' in html
+    assert html.index("vendor/leaflet/leaflet.css") < html.index("/static/style.css")     # our CSS can override Leaflet's
+    assert html.index("vendor/leaflet/leaflet.js") < html.index("/static/app.js")         # L exists when app.js runs
+    assert "https://" not in html and "http://" not in html                                # nothing loads from outside
+    js = client.get("/static/vendor/leaflet/leaflet.js")
+    assert js.status_code == 200 and "Leaflet 1.9.4" in js.text[:200]
+    assert client.get("/static/vendor/leaflet/leaflet.css").status_code == 200
+    lic = client.get("/static/vendor/leaflet/LICENSE")
+    assert lic.status_code == 200 and "BSD 2-Clause" in lic.text
+    for name in ("layers.png", "layers-2x.png", "marker-icon.png", "marker-icon-2x.png", "marker-shadow.png"):
+        assert client.get("/static/vendor/leaflet/images/" + name).status_code == 200, name
+
+
+def test_osm_tile_rules_are_kept():
+    """OSM's tile usage policy: the browser must send a Referer (so no Referrer-Policy header or meta tag),
+    the credit stays visible, the tile address is https and is one constant that can be switched."""
+    for path in ("/", "/static/app.js", "/static/style.css"):
+        names = {k.lower() for k in client.get(path).headers}
+        assert "referrer-policy" not in names, path
+    assert 'name="referrer"' not in client.get("/").text.lower()
+    js = client.get("/static/app.js").text
+    assert 'var TILE_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";' in js
+    assert 'OpenStreetMap</a> contributors' in js and "var TILE_CREDIT" in js
+
+
+def test_page_code_never_puts_server_text_in_with_innerhtml():
+    """HANDOFF rule: everything the server sends goes in with textContent. (Leaflet's own file is not ours.)"""
+    js = client.get("/static/app.js").text
+    code = "\n".join(line for line in js.splitlines() if not line.strip().startswith("//"))
+    assert "innerHTML" not in code and "insertAdjacentHTML" not in code
+
+
 def test_job_store_down_gives_503_with_a_message():
     import jobs
     from jobstore import JobStoreError
@@ -143,6 +178,9 @@ if __name__ == "__main__":
     test_page_is_served()
     test_static_files_are_served()
     test_fonts_and_their_licence_are_served_from_static()
+    test_map_files_are_served_and_loaded_in_order()
+    test_osm_tile_rules_are_kept()
+    test_page_code_never_puts_server_text_in_with_innerhtml()
     test_job_store_down_gives_503_with_a_message()
     test_unknown_route_is_404()
     test_analyze_rejects_bad_input()

@@ -7,6 +7,7 @@
   <title>Sylvan Eye</title>
   <link rel="preload" href="/static/fonts/atkinson-hyperlegible-latin-400-normal.woff2" as="font" type="font/woff2"
     crossorigin>
+  <link rel="stylesheet" href="/static/vendor/leaflet/leaflet.css">
   <link rel="stylesheet" href="/static/style.css">
 </head>
 
@@ -20,6 +21,10 @@
 
   <main class="layout">
     <aside class="side">
+      <div id="map" role="application"
+        aria-label="Map. Click to place the point, or drag the marker. You can also type the coordinates below."></div>
+      <p id="map-hint" class="hint">Click the map to place the point, or drag the marker. Then press Analyse.</p>
+
       <form id="analyze-form" novalidate>
         <div class="field">
           <label for="paste">Paste a location from Google Maps</label>
@@ -63,6 +68,14 @@
     </aside>
 
     <div class="content">
+      <section id="intro" class="intro">
+        <h2>Choose a place, then press Analyse</h2>
+        <p>Click the map or type coordinates. A new place can take 1-2 minutes the first time; places already analysed
+          come back in seconds.</p>
+        <p class="hint">The rules choose the plants. An optional local language model can only reword the explanation.
+        </p>
+      </section>
+
       <section id="status-box" hidden>
         <p id="status" class="status" aria-live="polite"></p>
         <p id="slow-hint" class="hint" hidden>
@@ -73,6 +86,7 @@
       <section id="results" hidden></section>
     </div>
   </main>
+  <script src="/static/vendor/leaflet/leaflet.js"></script>
   <script src="/static/app.js"></script>
 </body>
 
