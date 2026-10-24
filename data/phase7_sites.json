@@ -10,7 +10,8 @@
     "Plant names as in plants.csv (for example Khejri, Babul, Teak, Sissoo, Bamboo, Salai).",
     "Commit this file before the first run: the commit time proves your expectations came first.",
     "Provenance: the expectations for all ten sites were drafted by Claude from general knowledge (not from the gate rules and before any result existed) and accepted unchanged by the user on 2026-10-13. Land types are the user's confirmed observations.",
-    "status: accepted = the system's behaviour is accepted and test_regions.py requires the expectations to match; known_issue = the system is wrong in a documented way and test_regions.py requires the miss to persist (so a fix shows up); pending = no verdict yet. original_expectation holds the blind expectations as committed before the first run; the fields above them were corrected after the review (see 'review')."
+    "status: accepted = the system's behaviour is accepted and test_regions.py requires the expectations to match; known_issue = the system is wrong in a documented way and test_regions.py requires the miss to persist (so a fix shows up); pending = no verdict yet. original_expectation holds the blind expectations as committed before the first run; the fields above them were corrected after the review (see 'review').",
+    "Round 2 (v2.0.0, 2026-10-23): 12 more sites, listed after the first ten. Candidates came from Gemini; on 2026-10-23 the user checked each point on the satellite view and accepted the expectations, which Claude had drafted before any run (see notes on each site). Status stays pending until the first run is reviewed."
   ],
   "sites": [
     {
@@ -376,6 +377,480 @@
         "expect_not_strong": []
       },
       "review": "Review 2026-10-14: the gate warns about bare or built-up ground on natural barren land (documented limit, P7-5), so the expectation was changed to warning. The rainfall reading (836 mm) is doubtful (P7-9); the user chose to skip checking it."
+    },
+    {
+      "slug": "ludhiana",
+      "region": "Punjab plains",
+      "name": "Ludhiana irrigated farmland",
+      "intended": "irrigated double-cropped cereal farmland",
+      "lat": 30.8385,
+      "lon": 76.0412,
+      "radius_m": 400,
+      "verified": true,
+      "land_type": "cropland",
+      "expect_gate": "warning",
+      "expect_warning_contains": "cropland",
+      "expect_plants": [
+        "Neem",
+        "Sissoo",
+        "Mango"
+      ],
+      "expect_ruled_out": [
+        "Deodar",
+        "Chir pine",
+        "Sal"
+      ],
+      "expect_not_strong": [],
+      "status": "pending",
+      "notes": "Round 2 (v2.0.0). On 2026-10-23 the user said he checked this point on the Google Maps satellite view himself (with Gemini's help, as he described it) and gave the point and land_type below. Expectations were drafted by Claude before any run from the plant rules and general knowledge (broad climate ranges; a plant is listed only if the matcher's verdict is the same across the whole range of climate, soil pH and soil texture) and accepted by the user on 2026-10-23 before any run, including the judgement calls. No unverified figure is used or recorded. Status stays pending until the first run has been reviewed.",
+      "original_expectation": {
+        "expect_gate": "warning",
+        "expect_warning_contains": "cropland",
+        "expect_plants": [
+          "Neem",
+          "Sissoo",
+          "Mango"
+        ],
+        "expect_ruled_out": [
+          "Deodar",
+          "Chir pine",
+          "Sal"
+        ],
+        "expect_not_strong": []
+      }
+    },
+    {
+      "slug": "anantapur",
+      "region": "Rayalaseema plateau",
+      "name": "Anantapur rainfed fields",
+      "intended": "rainfed dryland farmland, bare in the dry season",
+      "lat": 14.6218,
+      "lon": 77.5294,
+      "radius_m": 400,
+      "verified": true,
+      "land_type": "dryland farmland",
+      "expect_gate": "warning",
+      "expect_warning_contains": "cropland",
+      "expect_plants": [
+        "Neem",
+        "Babul",
+        "Ber"
+      ],
+      "expect_ruled_out": [
+        "Sal",
+        "Deodar",
+        "Arjun"
+      ],
+      "expect_not_strong": [],
+      "status": "pending",
+      "notes": "Round 2 (v2.0.0). On 2026-10-23 the user said he checked this point on the Google Maps satellite view himself (with Gemini's help, as he described it) and gave the point and land_type below. Expectations were drafted by Claude before any run from the plant rules and general knowledge (broad climate ranges; a plant is listed only if the matcher's verdict is the same across the whole range of climate, soil pH and soil texture) and accepted by the user on 2026-10-23 before any run, including the judgement calls. No unverified figure is used or recorded. Status stays pending until the first run has been reviewed. A test of the 0.24 dry-NDVI cut-off on farmland with a single short crop season.",
+      "original_expectation": {
+        "expect_gate": "warning",
+        "expect_warning_contains": "cropland",
+        "expect_plants": [
+          "Neem",
+          "Babul",
+          "Ber"
+        ],
+        "expect_ruled_out": [
+          "Sal",
+          "Deodar",
+          "Arjun"
+        ],
+        "expect_not_strong": []
+      }
+    },
+    {
+      "slug": "hisar",
+      "region": "Haryana semi-arid plain",
+      "name": "Hisar rainfed fields",
+      "intended": "semi-arid rainfed farmland, bare in summer fallow months",
+      "lat": 29.0814,
+      "lon": 75.6188,
+      "radius_m": 400,
+      "verified": true,
+      "land_type": "barani farmland",
+      "expect_gate": "warning",
+      "expect_warning_contains": "cropland",
+      "expect_plants": [
+        "Neem",
+        "Babul",
+        "Ber"
+      ],
+      "expect_ruled_out": [
+        "Sal",
+        "Deodar",
+        "Jamun"
+      ],
+      "expect_not_strong": [],
+      "status": "pending",
+      "notes": "Round 2 (v2.0.0). On 2026-10-23 the user said he checked this point on the Google Maps satellite view himself (with Gemini's help, as he described it) and gave the point and land_type below. Expectations were drafted by Claude before any run from the plant rules and general knowledge (broad climate ranges; a plant is listed only if the matcher's verdict is the same across the whole range of climate, soil pH and soil texture) and accepted by the user on 2026-10-23 before any run, including the judgement calls. No unverified figure is used or recorded. Status stays pending until the first run has been reviewed. A test of the 0.24 dry-NDVI cut-off on sandy farmland that stays bare for months.",
+      "original_expectation": {
+        "expect_gate": "warning",
+        "expect_warning_contains": "cropland",
+        "expect_plants": [
+          "Neem",
+          "Babul",
+          "Ber"
+        ],
+        "expect_ruled_out": [
+          "Sal",
+          "Deodar",
+          "Jamun"
+        ],
+        "expect_not_strong": []
+      }
+    },
+    {
+      "slug": "malihabad",
+      "region": "Gangetic plain (orchard belt)",
+      "name": "Malihabad mango orchard",
+      "intended": "dense fruit orchard with continuous tree canopy",
+      "lat": 26.886117,
+      "lon": 80.728061,
+      "radius_m": 400,
+      "verified": true,
+      "land_type": "dense mango orchard",
+      "expect_gate": "warning",
+      "expect_warning_contains": "",
+      "expect_plants": [
+        "Neem",
+        "Mango",
+        "Sissoo"
+      ],
+      "expect_ruled_out": [
+        "Deodar",
+        "Chir pine"
+      ],
+      "expect_not_strong": [],
+      "status": "pending",
+      "notes": "Round 2 (v2.0.0). On 2026-10-23 the user said he checked this point on the Google Maps satellite view himself (with Gemini's help, as he described it) and gave the point and land_type below. Expectations were drafted by Claude before any run from the plant rules and general knowledge (broad climate ranges; a plant is listed only if the matcher's verdict is the same across the whole range of climate, soil pH and soil texture) and accepted by the user on 2026-10-23 before any run, including the judgement calls. No unverified figure is used or recorded. Status stays pending until the first run has been reviewed. Judgement call: the land is in use, so the human answer is a warning, but the gate has no orchard rule, so a mismatch here is expected to be a finding about the gate, not a bug.",
+      "original_expectation": {
+        "expect_gate": "warning",
+        "expect_warning_contains": "",
+        "expect_plants": [
+          "Neem",
+          "Mango",
+          "Sissoo"
+        ],
+        "expect_ruled_out": [
+          "Deodar",
+          "Chir pine"
+        ],
+        "expect_not_strong": []
+      }
+    },
+    {
+      "slug": "dibrugarh",
+      "region": "Upper Assam valley",
+      "name": "Dibrugarh tea plantation",
+      "intended": "perennial shade-tree tea plantation",
+      "lat": 27.474586,
+      "lon": 95.095129,
+      "radius_m": 400,
+      "verified": true,
+      "land_type": "tea garden with shade trees",
+      "expect_gate": "warning",
+      "expect_warning_contains": "",
+      "expect_plants": [
+        "Teak",
+        "Mango",
+        "Arjun"
+      ],
+      "expect_ruled_out": [
+        "Khejri",
+        "Deodar",
+        "Chir pine"
+      ],
+      "expect_not_strong": [],
+      "status": "pending",
+      "notes": "Round 2 (v2.0.0). On 2026-10-23 the user said he checked this point on the Google Maps satellite view himself (with Gemini's help, as he described it) and gave the point and land_type below. Expectations were drafted by Claude before any run from the plant rules and general knowledge (broad climate ranges; a plant is listed only if the matcher's verdict is the same across the whole range of climate, soil pH and soil texture) and accepted by the user on 2026-10-23 before any run, including the judgement calls. No unverified figure is used or recorded. Status stays pending until the first run has been reviewed. Judgement call: same reasoning as the mango orchard (land in use, no plantation rule in the gate).",
+      "original_expectation": {
+        "expect_gate": "warning",
+        "expect_warning_contains": "",
+        "expect_plants": [
+          "Teak",
+          "Mango",
+          "Arjun"
+        ],
+        "expect_ruled_out": [
+          "Khejri",
+          "Deodar",
+          "Chir pine"
+        ],
+        "expect_not_strong": []
+      }
+    },
+    {
+      "slug": "dive-ghat",
+      "region": "Western Ghats rain-shadow",
+      "name": "Dive Ghat leeward scrub",
+      "intended": "leeward rain-shadow dry scrub and grassland",
+      "lat": 18.420939,
+      "lon": 73.941969,
+      "radius_m": 400,
+      "verified": true,
+      "land_type": "dry scrub just adjacent to hills",
+      "expect_gate": "none",
+      "expect_warning_contains": "",
+      "expect_plants": [
+        "Neem",
+        "Babul",
+        "Ber"
+      ],
+      "expect_ruled_out": [
+        "Deodar",
+        "Bamboo"
+      ],
+      "expect_not_strong": [],
+      "status": "pending",
+      "notes": "Round 2 (v2.0.0). On 2026-10-23 the user said he checked this point on the Google Maps satellite view himself (with Gemini's help, as he described it) and gave the point and land_type below. Expectations were drafted by Claude before any run from the plant rules and general knowledge (broad climate ranges; a plant is listed only if the matcher's verdict is the same across the whole range of climate, soil pH and soil texture) and accepted by the user on 2026-10-23 before any run, including the judgement calls. No unverified figure is used or recorded. Status stays pending until the first run has been reviewed. Natural scrub is plantable land, so no warning is expected; a cropland warning here would be a false positive from seasonal grass.",
+      "original_expectation": {
+        "expect_gate": "none",
+        "expect_warning_contains": "",
+        "expect_plants": [
+          "Neem",
+          "Babul",
+          "Ber"
+        ],
+        "expect_ruled_out": [
+          "Deodar",
+          "Bamboo"
+        ],
+        "expect_not_strong": []
+      }
+    },
+    {
+      "slug": "cherrapunji",
+      "region": "Khasi Hills",
+      "name": "Cherrapunji plateau grassland",
+      "intended": "hyper-wet plateau grassland and leached rock",
+      "lat": 25.271366,
+      "lon": 91.706878,
+      "radius_m": 400,
+      "verified": true,
+      "land_type": "plateau grassland (moved here because the previous point had many water ponds and this one has very few)",
+      "expect_gate": "none",
+      "expect_warning_contains": "",
+      "expect_plants": [
+        "Deodar",
+        "Siris",
+        "Palash"
+      ],
+      "expect_ruled_out": [
+        "Teak",
+        "Mango",
+        "Khejri"
+      ],
+      "expect_not_strong": [],
+      "status": "pending",
+      "notes": "Round 2 (v2.0.0). On 2026-10-23 the user said he checked this point on the Google Maps satellite view himself (with Gemini's help, as he described it) and gave the point and land_type below. Expectations were drafted by Claude before any run from the plant rules and general knowledge (broad climate ranges; a plant is listed only if the matcher's verdict is the same across the whole range of climate, soil pH and soil texture) and accepted by the user on 2026-10-23 before any run, including the judgement calls. No unverified figure is used or recorded. Status stays pending until the first run has been reviewed. The ruled-out plants are chosen because they are ruled out by altitude or by a hard rainfall maximum, so the verdict does not depend on how well the rainfall data reads this extremely wet place.",
+      "original_expectation": {
+        "expect_gate": "none",
+        "expect_warning_contains": "",
+        "expect_plants": [
+          "Deodar",
+          "Siris",
+          "Palash"
+        ],
+        "expect_ruled_out": [
+          "Teak",
+          "Mango",
+          "Khejri"
+        ],
+        "expect_not_strong": []
+      }
+    },
+    {
+      "slug": "pampore",
+      "region": "Kashmir valley",
+      "name": "Pampore karewa farmland",
+      "intended": "cold-valley karewa terrace farmland",
+      "lat": 34.004022,
+      "lon": 74.939165,
+      "radius_m": 400,
+      "verified": true,
+      "land_type": "karewa terrace farmland",
+      "expect_gate": "warning",
+      "expect_warning_contains": "cropland",
+      "expect_plants": [
+        "Deodar",
+        "Siris"
+      ],
+      "expect_ruled_out": [
+        "Teak",
+        "Mango",
+        "Banyan"
+      ],
+      "expect_not_strong": [],
+      "status": "pending",
+      "notes": "Round 2 (v2.0.0). On 2026-10-23 the user said he checked this point on the Google Maps satellite view himself (with Gemini's help, as he described it) and gave the point and land_type below. Expectations were drafted by Claude before any run from the plant rules and general knowledge (broad climate ranges; a plant is listed only if the matcher's verdict is the same across the whole range of climate, soil pH and soil texture) and accepted by the user on 2026-10-23 before any run, including the judgement calls. No unverified figure is used or recorded. Status stays pending until the first run has been reviewed.",
+      "original_expectation": {
+        "expect_gate": "warning",
+        "expect_warning_contains": "cropland",
+        "expect_plants": [
+          "Deodar",
+          "Siris"
+        ],
+        "expect_ruled_out": [
+          "Teak",
+          "Mango",
+          "Banyan"
+        ],
+        "expect_not_strong": []
+      }
+    },
+    {
+      "slug": "kolkata-core",
+      "region": "Lower Gangetic delta (city)",
+      "name": "Kolkata Bara Bazar core",
+      "intended": "dense big-city built-up core",
+      "lat": 22.578,
+      "lon": 88.358,
+      "radius_m": 400,
+      "verified": true,
+      "land_type": "dense built-up urban core",
+      "expect_gate": "warning",
+      "expect_warning_contains": "built-up",
+      "expect_plants": [
+        "Neem",
+        "Peepal",
+        "Banyan"
+      ],
+      "expect_ruled_out": [
+        "Deodar",
+        "Chir pine",
+        "Sal"
+      ],
+      "expect_not_strong": [],
+      "status": "pending",
+      "notes": "Round 2 (v2.0.0). On 2026-10-23 the user said he checked this point on the Google Maps satellite view himself (with Gemini's help, as he described it) and gave the point and land_type below. Expectations were drafted by Claude before any run from the plant rules and general knowledge (broad climate ranges; a plant is listed only if the matcher's verdict is the same across the whole range of climate, soil pH and soil texture) and accepted by the user on 2026-10-23 before any run, including the judgement calls. No unverified figure is used or recorded. Status stays pending until the first run has been reviewed. A dense-town site for judging the building-outline number.",
+      "original_expectation": {
+        "expect_gate": "warning",
+        "expect_warning_contains": "built-up",
+        "expect_plants": [
+          "Neem",
+          "Peepal",
+          "Banyan"
+        ],
+        "expect_ruled_out": [
+          "Deodar",
+          "Chir pine",
+          "Sal"
+        ],
+        "expect_not_strong": []
+      }
+    },
+    {
+      "slug": "darjeeling",
+      "region": "Eastern Himalaya",
+      "name": "Darjeeling Chauk Bazaar",
+      "intended": "dense small hill town",
+      "lat": 27.0422,
+      "lon": 88.2654,
+      "radius_m": 400,
+      "verified": true,
+      "land_type": "dense hill town built-up",
+      "expect_gate": "warning",
+      "expect_warning_contains": "built-up",
+      "expect_plants": [
+        "Deodar"
+      ],
+      "expect_ruled_out": [
+        "Mango",
+        "Teak",
+        "Neem"
+      ],
+      "expect_not_strong": [],
+      "status": "pending",
+      "notes": "Round 2 (v2.0.0). On 2026-10-23 the user said he checked this point on the Google Maps satellite view himself (with Gemini's help, as he described it) and gave the point and land_type below. Expectations were drafted by Claude before any run from the plant rules and general knowledge (broad climate ranges; a plant is listed only if the matcher's verdict is the same across the whole range of climate, soil pH and soil texture) and accepted by the user on 2026-10-23 before any run, including the judgement calls. No unverified figure is used or recorded. Status stays pending until the first run has been reviewed. A dense hill town like Shimla, where satellite land cover may miss the houses; a dense-town site for the building-outline number.",
+      "original_expectation": {
+        "expect_gate": "warning",
+        "expect_warning_contains": "built-up",
+        "expect_plants": [
+          "Deodar"
+        ],
+        "expect_ruled_out": [
+          "Mango",
+          "Teak",
+          "Neem"
+        ],
+        "expect_not_strong": []
+      }
+    },
+    {
+      "slug": "kochi",
+      "region": "Malabar coast",
+      "name": "Kochi Mattancherry",
+      "intended": "dense coastal and estuarine town",
+      "lat": 9.9575,
+      "lon": 76.2545,
+      "radius_m": 400,
+      "verified": true,
+      "land_type": "dense coastal town built-up",
+      "expect_gate": "warning",
+      "expect_warning_contains": "built-up",
+      "expect_plants": [
+        "Neem",
+        "Mango",
+        "Banyan"
+      ],
+      "expect_ruled_out": [
+        "Deodar",
+        "Khejri",
+        "Sal"
+      ],
+      "expect_not_strong": [],
+      "status": "pending",
+      "notes": "Round 2 (v2.0.0). On 2026-10-23 the user said he checked this point on the Google Maps satellite view himself (with Gemini's help, as he described it) and gave the point and land_type below. Expectations were drafted by Claude before any run from the plant rules and general knowledge (broad climate ranges; a plant is listed only if the matcher's verdict is the same across the whole range of climate, soil pH and soil texture) and accepted by the user on 2026-10-23 before any run, including the judgement calls. No unverified figure is used or recorded. Status stays pending until the first run has been reviewed. A dense-town site for the building-outline number.",
+      "original_expectation": {
+        "expect_gate": "warning",
+        "expect_warning_contains": "built-up",
+        "expect_plants": [
+          "Neem",
+          "Mango",
+          "Banyan"
+        ],
+        "expect_ruled_out": [
+          "Deodar",
+          "Khejri",
+          "Sal"
+        ],
+        "expect_not_strong": []
+      }
+    },
+    {
+      "slug": "sundarbans",
+      "region": "Sundarbans delta",
+      "name": "Sundarbans mangrove forest",
+      "intended": "intertidal estuarine mangrove forest",
+      "lat": 22.105,
+      "lon": 88.825,
+      "radius_m": 400,
+      "verified": true,
+      "land_type": "closed-canopy mangrove forest",
+      "expect_gate": "warning",
+      "expect_warning_contains": "water",
+      "expect_plants": [],
+      "expect_ruled_out": [
+        "Deodar",
+        "Chir pine",
+        "Sal"
+      ],
+      "expect_not_strong": [],
+      "status": "pending",
+      "notes": "Round 2 (v2.0.0). On 2026-10-23 the user said he checked this point on the Google Maps satellite view himself (with Gemini's help, as he described it) and gave the point and land_type below. Expectations were drafted by Claude before any run from the plant rules and general knowledge (broad climate ranges; a plant is listed only if the matcher's verdict is the same across the whole range of climate, soil pH and soil texture) and accepted by the user on 2026-10-23 before any run, including the judgement calls. No unverified figure is used or recorded. Status stays pending until the first run has been reviewed. Judgement call: tidal land that is already forest, which the gate has no concept of; the warning is expected from the water and wet-surface share, and the plants are not the point.",
+      "original_expectation": {
+        "expect_gate": "warning",
+        "expect_warning_contains": "water",
+        "expect_plants": [],
+        "expect_ruled_out": [
+          "Deodar",
+          "Chir pine",
+          "Sal"
+        ],
+        "expect_not_strong": []
+      }
     }
   ]
 }
