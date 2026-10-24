@@ -11,7 +11,7 @@
     "Commit this file before the first run: the commit time proves your expectations came first.",
     "Provenance: the expectations for all ten sites were drafted by Claude from general knowledge (not from the gate rules and before any result existed) and accepted unchanged by the user on 2026-10-13. Land types are the user's confirmed observations.",
     "status: accepted = the system's behaviour is accepted and test_regions.py requires the expectations to match; known_issue = the system is wrong in a documented way and test_regions.py requires the miss to persist (so a fix shows up); pending = no verdict yet. original_expectation holds the blind expectations as committed before the first run; the fields above them were corrected after the review (see 'review').",
-    "Round 2 (v2.0.0, 2026-10-23): 12 more sites, listed after the first ten. Candidates came from Gemini; on 2026-10-23 the user checked each point on the satellite view and accepted the expectations, which Claude had drafted before any run (see notes on each site). Status stays pending until the first run is reviewed."
+    "Round 2 (v2.0.0, 2026-10-23): 12 more sites, listed after the first ten. Candidates came from Gemini; on 2026-10-23 the user checked each point on the satellite view and accepted the expectations, which Claude had drafted before any run (see notes on each site). The first run was reviewed on 2026-10-24: 4 sites matched (accepted) and 8 are known issues (see the review field)."
   ],
   "sites": [
     {
@@ -401,8 +401,8 @@
         "Sal"
       ],
       "expect_not_strong": [],
-      "status": "pending",
-      "notes": "Round 2 (v2.0.0). On 2026-10-23 the user said he checked this point on the Google Maps satellite view himself (with Gemini's help, as he described it) and gave the point and land_type below. Expectations were drafted by Claude before any run from the plant rules and general knowledge (broad climate ranges; a plant is listed only if the matcher's verdict is the same across the whole range of climate, soil pH and soil texture) and accepted by the user on 2026-10-23 before any run, including the judgement calls. No unverified figure is used or recorded. Status stays pending until the first run has been reviewed.",
+      "status": "accepted",
+      "notes": "Round 2 (v2.0.0). On 2026-10-23 the user said he checked this point on the Google Maps satellite view himself (with Gemini's help, as he described it) and gave the point and land_type below. Expectations were drafted by Claude before any run from the plant rules and general knowledge (broad climate ranges; a plant is listed only if the matcher's verdict is the same across the whole range of climate, soil pH and soil texture) and accepted by the user on 2026-10-23 before any run, including the judgement calls. No unverified figure is used or recorded. First run reviewed on 2026-10-24 (see status and review).",
       "original_expectation": {
         "expect_gate": "warning",
         "expect_warning_contains": "cropland",
@@ -442,8 +442,8 @@
         "Arjun"
       ],
       "expect_not_strong": [],
-      "status": "pending",
-      "notes": "Round 2 (v2.0.0). On 2026-10-23 the user said he checked this point on the Google Maps satellite view himself (with Gemini's help, as he described it) and gave the point and land_type below. Expectations were drafted by Claude before any run from the plant rules and general knowledge (broad climate ranges; a plant is listed only if the matcher's verdict is the same across the whole range of climate, soil pH and soil texture) and accepted by the user on 2026-10-23 before any run, including the judgement calls. No unverified figure is used or recorded. Status stays pending until the first run has been reviewed. A test of the 0.24 dry-NDVI cut-off on farmland with a single short crop season.",
+      "status": "known_issue",
+      "notes": "Round 2 (v2.0.0). On 2026-10-23 the user said he checked this point on the Google Maps satellite view himself (with Gemini's help, as he described it) and gave the point and land_type below. Expectations were drafted by Claude before any run from the plant rules and general knowledge (broad climate ranges; a plant is listed only if the matcher's verdict is the same across the whole range of climate, soil pH and soil texture) and accepted by the user on 2026-10-23 before any run, including the judgement calls. No unverified figure is used or recorded. First run reviewed on 2026-10-24 (see status and review). A test of the 0.24 dry-NDVI cut-off on farmland with a single short crop season.",
       "original_expectation": {
         "expect_gate": "warning",
         "expect_warning_contains": "cropland",
@@ -458,7 +458,8 @@
           "Arjun"
         ],
         "expect_not_strong": []
-      }
+      },
+      "review": "Review 2026-10-24: farmland was expected to warn; the system gave no warning because the dry-season NDVI floor read 0.244, just above the 0.24 cut-off (SYSTEM MISS, knife-edge, documented). The expectation stays as written; the test expects the miss to persist."
     },
     {
       "slug": "hisar",
@@ -483,8 +484,8 @@
         "Jamun"
       ],
       "expect_not_strong": [],
-      "status": "pending",
-      "notes": "Round 2 (v2.0.0). On 2026-10-23 the user said he checked this point on the Google Maps satellite view himself (with Gemini's help, as he described it) and gave the point and land_type below. Expectations were drafted by Claude before any run from the plant rules and general knowledge (broad climate ranges; a plant is listed only if the matcher's verdict is the same across the whole range of climate, soil pH and soil texture) and accepted by the user on 2026-10-23 before any run, including the judgement calls. No unverified figure is used or recorded. Status stays pending until the first run has been reviewed. A test of the 0.24 dry-NDVI cut-off on sandy farmland that stays bare for months.",
+      "status": "accepted",
+      "notes": "Round 2 (v2.0.0). On 2026-10-23 the user said he checked this point on the Google Maps satellite view himself (with Gemini's help, as he described it) and gave the point and land_type below. Expectations were drafted by Claude before any run from the plant rules and general knowledge (broad climate ranges; a plant is listed only if the matcher's verdict is the same across the whole range of climate, soil pH and soil texture) and accepted by the user on 2026-10-23 before any run, including the judgement calls. No unverified figure is used or recorded. First run reviewed on 2026-10-24 (see status and review). A test of the 0.24 dry-NDVI cut-off on sandy farmland that stays bare for months.",
       "original_expectation": {
         "expect_gate": "warning",
         "expect_warning_contains": "cropland",
@@ -523,8 +524,8 @@
         "Chir pine"
       ],
       "expect_not_strong": [],
-      "status": "pending",
-      "notes": "Round 2 (v2.0.0). On 2026-10-23 the user said he checked this point on the Google Maps satellite view himself (with Gemini's help, as he described it) and gave the point and land_type below. Expectations were drafted by Claude before any run from the plant rules and general knowledge (broad climate ranges; a plant is listed only if the matcher's verdict is the same across the whole range of climate, soil pH and soil texture) and accepted by the user on 2026-10-23 before any run, including the judgement calls. No unverified figure is used or recorded. Status stays pending until the first run has been reviewed. Judgement call: the land is in use, so the human answer is a warning, but the gate has no orchard rule, so a mismatch here is expected to be a finding about the gate, not a bug.",
+      "status": "known_issue",
+      "notes": "Round 2 (v2.0.0). On 2026-10-23 the user said he checked this point on the Google Maps satellite view himself (with Gemini's help, as he described it) and gave the point and land_type below. Expectations were drafted by Claude before any run from the plant rules and general knowledge (broad climate ranges; a plant is listed only if the matcher's verdict is the same across the whole range of climate, soil pH and soil texture) and accepted by the user on 2026-10-23 before any run, including the judgement calls. No unverified figure is used or recorded. First run reviewed on 2026-10-24 (see status and review). Judgement call: the land is in use, so the human answer is a warning, but the gate has no orchard rule, so a mismatch here is expected to be a finding about the gate, not a bug.",
       "original_expectation": {
         "expect_gate": "warning",
         "expect_warning_contains": "",
@@ -538,7 +539,8 @@
           "Chir pine"
         ],
         "expect_not_strong": []
-      }
+      },
+      "review": "Review 2026-10-24: the orchard has a steady canopy (dry NDVI 0.534), so the cropland rule stays quiet and the gate has no orchard rule (SYSTEM LIMIT; this was a judgement call accepted before the run). The expectation stays; the test expects the miss to persist."
     },
     {
       "slug": "dibrugarh",
@@ -563,8 +565,8 @@
         "Chir pine"
       ],
       "expect_not_strong": [],
-      "status": "pending",
-      "notes": "Round 2 (v2.0.0). On 2026-10-23 the user said he checked this point on the Google Maps satellite view himself (with Gemini's help, as he described it) and gave the point and land_type below. Expectations were drafted by Claude before any run from the plant rules and general knowledge (broad climate ranges; a plant is listed only if the matcher's verdict is the same across the whole range of climate, soil pH and soil texture) and accepted by the user on 2026-10-23 before any run, including the judgement calls. No unverified figure is used or recorded. Status stays pending until the first run has been reviewed. Judgement call: same reasoning as the mango orchard (land in use, no plantation rule in the gate).",
+      "status": "known_issue",
+      "notes": "Round 2 (v2.0.0). On 2026-10-23 the user said he checked this point on the Google Maps satellite view himself (with Gemini's help, as he described it) and gave the point and land_type below. Expectations were drafted by Claude before any run from the plant rules and general knowledge (broad climate ranges; a plant is listed only if the matcher's verdict is the same across the whole range of climate, soil pH and soil texture) and accepted by the user on 2026-10-23 before any run, including the judgement calls. No unverified figure is used or recorded. First run reviewed on 2026-10-24 (see status and review). Judgement call: same reasoning as the mango orchard (land in use, no plantation rule in the gate).",
       "original_expectation": {
         "expect_gate": "warning",
         "expect_warning_contains": "",
@@ -579,7 +581,8 @@
           "Chir pine"
         ],
         "expect_not_strong": []
-      }
+      },
+      "review": "Review 2026-10-24: the tea estate has a steady canopy (dry NDVI 0.498), so the cropland rule stays quiet and the gate has no plantation rule (SYSTEM LIMIT; judgement call accepted before the run). The expectation stays; the test expects the miss to persist."
     },
     {
       "slug": "dive-ghat",
@@ -603,8 +606,8 @@
         "Bamboo"
       ],
       "expect_not_strong": [],
-      "status": "pending",
-      "notes": "Round 2 (v2.0.0). On 2026-10-23 the user said he checked this point on the Google Maps satellite view himself (with Gemini's help, as he described it) and gave the point and land_type below. Expectations were drafted by Claude before any run from the plant rules and general knowledge (broad climate ranges; a plant is listed only if the matcher's verdict is the same across the whole range of climate, soil pH and soil texture) and accepted by the user on 2026-10-23 before any run, including the judgement calls. No unverified figure is used or recorded. Status stays pending until the first run has been reviewed. Natural scrub is plantable land, so no warning is expected; a cropland warning here would be a false positive from seasonal grass.",
+      "status": "known_issue",
+      "notes": "Round 2 (v2.0.0). On 2026-10-23 the user said he checked this point on the Google Maps satellite view himself (with Gemini's help, as he described it) and gave the point and land_type below. Expectations were drafted by Claude before any run from the plant rules and general knowledge (broad climate ranges; a plant is listed only if the matcher's verdict is the same across the whole range of climate, soil pH and soil texture) and accepted by the user on 2026-10-23 before any run, including the judgement calls. No unverified figure is used or recorded. First run reviewed on 2026-10-24 (see status and review). Natural scrub is plantable land, so no warning is expected; a cropland warning here would be a false positive from seasonal grass.",
       "original_expectation": {
         "expect_gate": "none",
         "expect_warning_contains": "",
@@ -618,7 +621,8 @@
           "Bamboo"
         ],
         "expect_not_strong": []
-      }
+      },
+      "review": "Review 2026-10-24: natural scrub was expected to pass; the system warned 'cropland' because vegetation swings between bare and green in 2 of 3 years (dry NDVI 0.149), so seasonal scrub looks like crops to the rule (SYSTEM FALSE POSITIVE, unvalidated rule). The expectation stays; the test expects the warning to persist."
     },
     {
       "slug": "cherrapunji",
@@ -643,8 +647,8 @@
         "Khejri"
       ],
       "expect_not_strong": [],
-      "status": "pending",
-      "notes": "Round 2 (v2.0.0). On 2026-10-23 the user said he checked this point on the Google Maps satellite view himself (with Gemini's help, as he described it) and gave the point and land_type below. Expectations were drafted by Claude before any run from the plant rules and general knowledge (broad climate ranges; a plant is listed only if the matcher's verdict is the same across the whole range of climate, soil pH and soil texture) and accepted by the user on 2026-10-23 before any run, including the judgement calls. No unverified figure is used or recorded. Status stays pending until the first run has been reviewed. The ruled-out plants are chosen because they are ruled out by altitude or by a hard rainfall maximum, so the verdict does not depend on how well the rainfall data reads this extremely wet place.",
+      "status": "known_issue",
+      "notes": "Round 2 (v2.0.0). On 2026-10-23 the user said he checked this point on the Google Maps satellite view himself (with Gemini's help, as he described it) and gave the point and land_type below. Expectations were drafted by Claude before any run from the plant rules and general knowledge (broad climate ranges; a plant is listed only if the matcher's verdict is the same across the whole range of climate, soil pH and soil texture) and accepted by the user on 2026-10-23 before any run, including the judgement calls. No unverified figure is used or recorded. First run reviewed on 2026-10-24 (see status and review). The ruled-out plants are chosen because they are ruled out by altitude or by a hard rainfall maximum, so the verdict does not depend on how well the rainfall data reads this extremely wet place.",
       "original_expectation": {
         "expect_gate": "none",
         "expect_warning_contains": "",
@@ -659,7 +663,8 @@
           "Khejri"
         ],
         "expect_not_strong": []
-      }
+      },
+      "review": "Review 2026-10-24: plateau grassland was expected to pass; the system warned 'cropland' in 3 of 3 years (dry NDVI 0.116, swing 98%), so wet grassland looks like crops to the rule (SYSTEM FALSE POSITIVE, unvalidated rule). The rainfall read 4978 mm and no reference has been checked for this place yet. The expectation stays; the test expects the warning to persist."
     },
     {
       "slug": "pampore",
@@ -683,8 +688,8 @@
         "Banyan"
       ],
       "expect_not_strong": [],
-      "status": "pending",
-      "notes": "Round 2 (v2.0.0). On 2026-10-23 the user said he checked this point on the Google Maps satellite view himself (with Gemini's help, as he described it) and gave the point and land_type below. Expectations were drafted by Claude before any run from the plant rules and general knowledge (broad climate ranges; a plant is listed only if the matcher's verdict is the same across the whole range of climate, soil pH and soil texture) and accepted by the user on 2026-10-23 before any run, including the judgement calls. No unverified figure is used or recorded. Status stays pending until the first run has been reviewed.",
+      "status": "accepted",
+      "notes": "Round 2 (v2.0.0). On 2026-10-23 the user said he checked this point on the Google Maps satellite view himself (with Gemini's help, as he described it) and gave the point and land_type below. Expectations were drafted by Claude before any run from the plant rules and general knowledge (broad climate ranges; a plant is listed only if the matcher's verdict is the same across the whole range of climate, soil pH and soil texture) and accepted by the user on 2026-10-23 before any run, including the judgement calls. No unverified figure is used or recorded. First run reviewed on 2026-10-24 (see status and review).",
       "original_expectation": {
         "expect_gate": "warning",
         "expect_warning_contains": "cropland",
@@ -723,8 +728,8 @@
         "Sal"
       ],
       "expect_not_strong": [],
-      "status": "pending",
-      "notes": "Round 2 (v2.0.0). On 2026-10-23 the user said he checked this point on the Google Maps satellite view himself (with Gemini's help, as he described it) and gave the point and land_type below. Expectations were drafted by Claude before any run from the plant rules and general knowledge (broad climate ranges; a plant is listed only if the matcher's verdict is the same across the whole range of climate, soil pH and soil texture) and accepted by the user on 2026-10-23 before any run, including the judgement calls. No unverified figure is used or recorded. Status stays pending until the first run has been reviewed. A dense-town site for judging the building-outline number.",
+      "status": "accepted",
+      "notes": "Round 2 (v2.0.0). On 2026-10-23 the user said he checked this point on the Google Maps satellite view himself (with Gemini's help, as he described it) and gave the point and land_type below. Expectations were drafted by Claude before any run from the plant rules and general knowledge (broad climate ranges; a plant is listed only if the matcher's verdict is the same across the whole range of climate, soil pH and soil texture) and accepted by the user on 2026-10-23 before any run, including the judgement calls. No unverified figure is used or recorded. First run reviewed on 2026-10-24 (see status and review). A dense-town site for judging the building-outline number.",
       "original_expectation": {
         "expect_gate": "warning",
         "expect_warning_contains": "built-up",
@@ -762,8 +767,8 @@
         "Neem"
       ],
       "expect_not_strong": [],
-      "status": "pending",
-      "notes": "Round 2 (v2.0.0). On 2026-10-23 the user said he checked this point on the Google Maps satellite view himself (with Gemini's help, as he described it) and gave the point and land_type below. Expectations were drafted by Claude before any run from the plant rules and general knowledge (broad climate ranges; a plant is listed only if the matcher's verdict is the same across the whole range of climate, soil pH and soil texture) and accepted by the user on 2026-10-23 before any run, including the judgement calls. No unverified figure is used or recorded. Status stays pending until the first run has been reviewed. A dense hill town like Shimla, where satellite land cover may miss the houses; a dense-town site for the building-outline number.",
+      "status": "known_issue",
+      "notes": "Round 2 (v2.0.0). On 2026-10-23 the user said he checked this point on the Google Maps satellite view himself (with Gemini's help, as he described it) and gave the point and land_type below. Expectations were drafted by Claude before any run from the plant rules and general knowledge (broad climate ranges; a plant is listed only if the matcher's verdict is the same across the whole range of climate, soil pH and soil texture) and accepted by the user on 2026-10-23 before any run, including the judgement calls. No unverified figure is used or recorded. First run reviewed on 2026-10-24 (see status and review). A dense hill town like Shimla, where satellite land cover may miss the houses; a dense-town site for the building-outline number.",
       "original_expectation": {
         "expect_gate": "warning",
         "expect_warning_contains": "built-up",
@@ -776,7 +781,8 @@
           "Neem"
         ],
         "expect_not_strong": []
-      }
+      },
+      "review": "Review 2026-10-24: a built-up warning was expected; the system said BLOCKED because land cover read 61% as water or wet surface and only 13% as bare or built, while the building outlines cover 41.8% of the circle (SYSTEM WRONG REASON: no planting is the right outcome, but the stated reason is wrong). The expectation stays; the test expects the difference to persist."
     },
     {
       "slug": "kochi",
@@ -801,8 +807,8 @@
         "Sal"
       ],
       "expect_not_strong": [],
-      "status": "pending",
-      "notes": "Round 2 (v2.0.0). On 2026-10-23 the user said he checked this point on the Google Maps satellite view himself (with Gemini's help, as he described it) and gave the point and land_type below. Expectations were drafted by Claude before any run from the plant rules and general knowledge (broad climate ranges; a plant is listed only if the matcher's verdict is the same across the whole range of climate, soil pH and soil texture) and accepted by the user on 2026-10-23 before any run, including the judgement calls. No unverified figure is used or recorded. Status stays pending until the first run has been reviewed. A dense-town site for the building-outline number.",
+      "status": "known_issue",
+      "notes": "Round 2 (v2.0.0). On 2026-10-23 the user said he checked this point on the Google Maps satellite view himself (with Gemini's help, as he described it) and gave the point and land_type below. Expectations were drafted by Claude before any run from the plant rules and general knowledge (broad climate ranges; a plant is listed only if the matcher's verdict is the same across the whole range of climate, soil pH and soil texture) and accepted by the user on 2026-10-23 before any run, including the judgement calls. No unverified figure is used or recorded. First run reviewed on 2026-10-24 (see status and review). A dense-town site for the building-outline number.",
       "original_expectation": {
         "expect_gate": "warning",
         "expect_warning_contains": "built-up",
@@ -817,7 +823,8 @@
           "Sal"
         ],
         "expect_not_strong": []
-      }
+      },
+      "review": "Review 2026-10-24: a built-up warning was expected; land cover read 37% bare or built, under the 40% line, while the building outlines cover 43.8% of the circle (SYSTEM MISS near the line, documented). The expectation stays; the test expects the miss to persist."
     },
     {
       "slug": "sundarbans",
@@ -838,8 +845,8 @@
         "Sal"
       ],
       "expect_not_strong": [],
-      "status": "pending",
-      "notes": "Round 2 (v2.0.0). On 2026-10-23 the user said he checked this point on the Google Maps satellite view himself (with Gemini's help, as he described it) and gave the point and land_type below. Expectations were drafted by Claude before any run from the plant rules and general knowledge (broad climate ranges; a plant is listed only if the matcher's verdict is the same across the whole range of climate, soil pH and soil texture) and accepted by the user on 2026-10-23 before any run, including the judgement calls. No unverified figure is used or recorded. Status stays pending until the first run has been reviewed. Judgement call: tidal land that is already forest, which the gate has no concept of; the warning is expected from the water and wet-surface share, and the plants are not the point.",
+      "status": "known_issue",
+      "notes": "Round 2 (v2.0.0). On 2026-10-23 the user said he checked this point on the Google Maps satellite view himself (with Gemini's help, as he described it) and gave the point and land_type below. Expectations were drafted by Claude before any run from the plant rules and general knowledge (broad climate ranges; a plant is listed only if the matcher's verdict is the same across the whole range of climate, soil pH and soil texture) and accepted by the user on 2026-10-23 before any run, including the judgement calls. No unverified figure is used or recorded. First run reviewed on 2026-10-24 (see status and review). Judgement call: tidal land that is already forest, which the gate has no concept of; the warning is expected from the water and wet-surface share, and the plants are not the point.",
       "original_expectation": {
         "expect_gate": "warning",
         "expect_warning_contains": "water",
@@ -850,7 +857,8 @@
           "Sal"
         ],
         "expect_not_strong": []
-      }
+      },
+      "review": "Review 2026-10-24: land cover read 89% dense vegetation and 1% water, and the gate has no concept of tidal forest (SYSTEM LIMIT; judgement call accepted before the run). The expectation stays; the test expects the miss to persist."
     }
   ]
 }

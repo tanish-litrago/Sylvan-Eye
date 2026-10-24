@@ -1,0 +1,69 @@
+{
+  "env": {
+    "annual_mean_temp_c": 26.7,
+    "annual_rainfall_mm": 2960,
+    "elevation_m": 9.0,
+    "ph": 5.61,
+    "soil_texture": "heavy"
+  },
+  "exported_on": "2026-10-24",
+  "site": {
+    "lat": 9.9575,
+    "lon": 76.2545,
+    "name": "Kochi Mattancherry",
+    "radius_m": 400,
+    "region": "Malabar coast",
+    "slug": "kochi"
+  },
+  "terrain": {
+    "footprints": {
+      "coverage": "ok",
+      "coverage_check_m": 5000,
+      "license": "CC-BY-4.0",
+      "min_confidence": 0.65,
+      "polygons": 2328,
+      "share": 0.4376,
+      "source": "Google Open Buildings V3 polygons (Earth Engine), inferred May 2023"
+    },
+    "imagery": {
+      "date_range": [
+        "2025-01-01",
+        "2026-01-01"
+      ],
+      "images_used": 34,
+      "source": "Sentinel-2 SR median composite (Earth Engine)"
+    },
+    "land_cover_fractions": {
+      "bare_or_built": 0.374,
+      "dense_vegetation": 0.112,
+      "sparse_vegetation_or_crops": 0.506,
+      "water_or_wet_surface": 0.007
+    },
+    "location": {
+      "lat": 9.9575,
+      "lon": 76.2545,
+      "radius_m": 400
+    },
+    "seasonality": {
+      "best_swing_year": 2023,
+      "big_swing_by_year": {
+        "2023": 0.199,
+        "2024": 0.061,
+        "2025": 0.109
+      },
+      "big_swing_fraction": 0.109,
+      "big_swing_fraction_best_year": 0.199,
+      "ndvi_dry_p10_mean": 0.194,
+      "ndvi_peak_p90_mean": 0.354,
+      "ndvi_range_mean": 0.16
+    },
+    "terrain": {
+      "elevation_m": 9.0,
+      "slope_deg": 2.35
+    },
+    "vegetation": {
+      "ndvi_mean": 0.278,
+      "ndwi_p90_mean": -0.222
+    }
+  }
+}

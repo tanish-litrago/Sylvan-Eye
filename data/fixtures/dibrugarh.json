@@ -1,0 +1,69 @@
+{
+  "env": {
+    "annual_mean_temp_c": 23.2,
+    "annual_rainfall_mm": 3485,
+    "elevation_m": 115.0,
+    "ph": 5.22,
+    "soil_texture": "medium"
+  },
+  "exported_on": "2026-10-24",
+  "site": {
+    "lat": 27.474586,
+    "lon": 95.095129,
+    "name": "Dibrugarh tea plantation",
+    "radius_m": 400,
+    "region": "Upper Assam valley",
+    "slug": "dibrugarh"
+  },
+  "terrain": {
+    "footprints": {
+      "coverage": "ok",
+      "coverage_check_m": 5000,
+      "license": "CC-BY-4.0",
+      "min_confidence": 0.65,
+      "polygons": 14,
+      "share": 0.0006,
+      "source": "Google Open Buildings V3 polygons (Earth Engine), inferred May 2023"
+    },
+    "imagery": {
+      "date_range": [
+        "2025-01-01",
+        "2026-01-01"
+      ],
+      "images_used": 50,
+      "source": "Sentinel-2 SR median composite (Earth Engine)"
+    },
+    "land_cover_fractions": {
+      "bare_or_built": 0.001,
+      "dense_vegetation": 0.954,
+      "sparse_vegetation_or_crops": 0.045,
+      "water_or_wet_surface": 0.0
+    },
+    "location": {
+      "lat": 27.474586,
+      "lon": 95.095129,
+      "radius_m": 400
+    },
+    "seasonality": {
+      "best_swing_year": 2025,
+      "big_swing_by_year": {
+        "2023": 0.943,
+        "2024": 0.666,
+        "2025": 0.974
+      },
+      "big_swing_fraction": 0.974,
+      "big_swing_fraction_best_year": 0.974,
+      "ndvi_dry_p10_mean": 0.498,
+      "ndvi_peak_p90_mean": 0.853,
+      "ndvi_range_mean": 0.354
+    },
+    "terrain": {
+      "elevation_m": 115.0,
+      "slope_deg": 2.06
+    },
+    "vegetation": {
+      "ndvi_mean": 0.76,
+      "ndwi_p90_mean": -0.479
+    }
+  }
+}

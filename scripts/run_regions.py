@@ -5,6 +5,8 @@ what YOU expected, written down BEFORE the run.
     python -m scripts.run_regions                     all sites in phase7_sites.json
     python -m scripts.run_regions jaisalmer shimla    only the named sites (slugs)
     python -m scripts.run_regions --refresh           ignore the cache and measure again
+    python -m scripts.run_regions --pause 120         wait 2 minutes after each place that was measured
+                                                 live (keeps under Open-Meteo's free limits)
     python -m scripts.run_regions --include-unverified   run sites whose coordinates you have not
                                                  checked (for a first look only)
 
@@ -30,6 +32,7 @@ from datetime import date
 from pathlib import Path
 
 import jobs
+from phases.phase4_inputs import RateLimited
 from phases.phase4_matcher import CACHE_LOG
 from phases.phase4_matcher import run_live as REAL_RUN_LIVE
 from scripts.fixtures import save_fixture
@@ -222,6 +225,8 @@ def main(argv=None, sites_path=SITES_FILE, report_path=REPORT_FILE, fixtures_dir
     ap.add_argument("slugs", nargs="*", help="only these sites")
     ap.add_argument("--refresh", action="store_true", help="measure again, ignore the cache")
     ap.add_argument("--include-unverified", action="store_true", help="also run sites not marked verified")
+    ap.add_argument("--pause", type=float, default=0, metavar="SECONDS",
+                    help="wait this long after each site that had to be measured live, so Open-Meteo's free limits are not hit")
     ap.add_argument("--report", help="write the report here instead of data/phase7_report.md (use it when re-running a few sites)")
     args = ap.parse_args(argv)
 
@@ -245,7 +250,8 @@ def main(argv=None, sites_path=SITES_FILE, report_path=REPORT_FILE, fixtures_dir
         return 2
 
     rows = []
-    for s in wanted:
+    stopped_at = None
+    for i, s in enumerate(wanted):
         print(f"{s['slug']:<22} {s['name']} ... ", end="", flush=True)
         try:
             result, seconds = run_site(s, args.refresh, fixtures_dir, run_live_fn)
@@ -254,7 +260,19 @@ def main(argv=None, sites_path=SITES_FILE, report_path=REPORT_FILE, fixtures_dir
         except Exception as e:
             row = {"site": s, "result": None, "error": f"{type(e).__name__}: {e}", "seconds": 0, "checks": []}
             print("ERROR:", row["error"])
+            if isinstance(e, RateLimited):
+                rows.append(row)
+                stopped_at = i
+                break                        # more requests now would only be refused too
         rows.append(row)
+        measured_live = any(status == "miss" for _, status in (row["result"] or {}).get("cache", []))
+        if args.pause and measured_live and i < len(wanted) - 1:
+            print(f"{'':<22} waiting {args.pause:g} s before the next site ...", flush=True)
+            time.sleep(args.pause)
+    if stopped_at is not None:
+        left = [x["slug"] for x in wanted[stopped_at + 1:]]
+        print("\nStopped: Open-Meteo's free limit is used up. Wait, then run the same command again;"
+              " finished sites are cached and come back in seconds." + (f"\nNot run yet: {', '.join(left)}" if left else ""))
 
     report_path = args.report or report_path
     Path(report_path).write_text(build_report(rows, date.today().isoformat()), encoding="utf-8")

@@ -1,0 +1,69 @@
+{
+  "env": {
+    "annual_mean_temp_c": 12.2,
+    "annual_rainfall_mm": 3550,
+    "elevation_m": 2079.0,
+    "ph": 5.66,
+    "soil_texture": "medium"
+  },
+  "exported_on": "2026-10-24",
+  "site": {
+    "lat": 27.0422,
+    "lon": 88.2654,
+    "name": "Darjeeling Chauk Bazaar",
+    "radius_m": 400,
+    "region": "Eastern Himalaya",
+    "slug": "darjeeling"
+  },
+  "terrain": {
+    "footprints": {
+      "coverage": "ok",
+      "coverage_check_m": 5000,
+      "license": "CC-BY-4.0",
+      "min_confidence": 0.65,
+      "polygons": 2387,
+      "share": 0.4178,
+      "source": "Google Open Buildings V3 polygons (Earth Engine), inferred May 2023"
+    },
+    "imagery": {
+      "date_range": [
+        "2025-01-01",
+        "2026-01-01"
+      ],
+      "images_used": 53,
+      "source": "Sentinel-2 SR median composite (Earth Engine)"
+    },
+    "land_cover_fractions": {
+      "bare_or_built": 0.134,
+      "dense_vegetation": 0.124,
+      "sparse_vegetation_or_crops": 0.135,
+      "water_or_wet_surface": 0.608
+    },
+    "location": {
+      "lat": 27.0422,
+      "lon": 88.2654,
+      "radius_m": 400
+    },
+    "seasonality": {
+      "best_swing_year": 2025,
+      "big_swing_by_year": {
+        "2023": 0.415,
+        "2024": 0.439,
+        "2025": 0.454
+      },
+      "big_swing_fraction": 0.454,
+      "big_swing_fraction_best_year": 0.454,
+      "ndvi_dry_p10_mean": 0.015,
+      "ndvi_peak_p90_mean": 0.328,
+      "ndvi_range_mean": 0.313
+    },
+    "terrain": {
+      "elevation_m": 2079.0,
+      "slope_deg": 18.54
+    },
+    "vegetation": {
+      "ndvi_mean": 0.257,
+      "ndwi_p90_mean": -0.003
+    }
+  }
+}

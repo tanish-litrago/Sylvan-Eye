@@ -1,0 +1,69 @@
+{
+  "env": {
+    "annual_mean_temp_c": 24.5,
+    "annual_rainfall_mm": 893,
+    "elevation_m": 730.3,
+    "ph": 6.81,
+    "soil_texture": "heavy"
+  },
+  "exported_on": "2026-10-24",
+  "site": {
+    "lat": 18.420939,
+    "lon": 73.941969,
+    "name": "Dive Ghat leeward scrub",
+    "radius_m": 400,
+    "region": "Western Ghats rain-shadow",
+    "slug": "dive-ghat"
+  },
+  "terrain": {
+    "footprints": {
+      "coverage": "ok",
+      "coverage_check_m": 5000,
+      "license": "CC-BY-4.0",
+      "min_confidence": 0.65,
+      "polygons": 0,
+      "share": 0.0,
+      "source": "Google Open Buildings V3 polygons (Earth Engine), inferred May 2023"
+    },
+    "imagery": {
+      "date_range": [
+        "2025-01-01",
+        "2026-01-01"
+      ],
+      "images_used": 39,
+      "source": "Sentinel-2 SR median composite (Earth Engine)"
+    },
+    "land_cover_fractions": {
+      "bare_or_built": 0.253,
+      "dense_vegetation": 0.0,
+      "sparse_vegetation_or_crops": 0.74,
+      "water_or_wet_surface": 0.007
+    },
+    "location": {
+      "lat": 18.420939,
+      "lon": 73.941969,
+      "radius_m": 400
+    },
+    "seasonality": {
+      "best_swing_year": 2024,
+      "big_swing_by_year": {
+        "2023": 0.26,
+        "2024": 0.937,
+        "2025": 0.928
+      },
+      "big_swing_fraction": 0.928,
+      "big_swing_fraction_best_year": 0.937,
+      "ndvi_dry_p10_mean": 0.149,
+      "ndvi_peak_p90_mean": 0.487,
+      "ndvi_range_mean": 0.338
+    },
+    "terrain": {
+      "elevation_m": 730.3,
+      "slope_deg": 17.91
+    },
+    "vegetation": {
+      "ndvi_mean": 0.237,
+      "ndwi_p90_mean": -0.293
+    }
+  }
+}

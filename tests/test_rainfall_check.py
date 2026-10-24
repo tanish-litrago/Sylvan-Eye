@@ -13,6 +13,13 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.normpath(os.path.join(HERE, "..", "data"))
 
 
+# v2.0.0: the 12 places added in the second Phase 7 round have no reference page checked yet. The check
+# script shows them as "no reference" (it never guesses). Each one leaves this set when it gets a row in
+# rainfall_reference.csv with a source that was opened, and the test below insists on that.
+NOT_YET_REFERENCED = {"ludhiana", "anantapur", "hisar", "malihabad", "dibrugarh", "dive-ghat",
+                      "cherrapunji", "pampore", "kolkata-core", "darjeeling", "kochi", "sundarbans"}
+
+
 def test_every_reference_row_has_a_source_and_a_number():
     with open(os.path.join(DATA, "rainfall_reference.csv"), newline="", encoding="utf-8") as f:
         rows = list(csv.DictReader(f))
@@ -30,7 +37,8 @@ def test_every_fixture_is_covered_once():
     stems = {os.path.splitext(os.path.basename(p))[0]
              for p in glob.glob(os.path.join(DATA, "fixtures", "*.json"))}
     assert stems, "no fixtures found"
-    assert stems - set(ref) == set(), f"fixtures without a reference: {stems - set(ref)}"
+    assert (stems - set(ref)) - NOT_YET_REFERENCED == set(), f"fixtures without a reference: {(stems - set(ref)) - NOT_YET_REFERENCED}"
+    assert NOT_YET_REFERENCED & set(ref) == set(), "has a reference now: remove it from NOT_YET_REFERENCED"
     assert set(ref) - stems == set(), f"reference rows naming a missing fixture: {set(ref) - stems}"
 
 
@@ -44,7 +52,8 @@ def test_bands():
 def test_leh_is_far_off_and_nothing_else_is():
     rows = {r["fixture"]: r for r in cr.compare(cr.load_pipeline(), cr.load_reference())}
     assert rows["leh"]["band"] == "FAR OFF" and rows["leh"]["ratio"] > 5
-    others = [r["fixture"] for r in rows.values() if r["fixture"] != "leh" and r["band"] != "ok"]
+    others = [r["fixture"] for r in rows.values()
+              if r["fixture"] != "leh" and r["fixture"] not in NOT_YET_REFERENCED and r["band"] != "ok"]
     assert others == [], others          # if this changes, the saved data or the references changed
 
 

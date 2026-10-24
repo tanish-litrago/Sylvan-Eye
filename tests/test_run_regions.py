@@ -2,11 +2,14 @@
 Tests for run_regions.py, with a fake run_live and temporary files:  python -m tests.test_run_regions
 """
 
+import contextlib
+import io
 import json
 import tempfile
 from pathlib import Path
 
 from scripts import run_regions as rr
+from phases.phase4_inputs import RateLimited
 from phases.phase4_matcher import CACHE_LOG, DEMO_ENV
 
 PLANTS = rr.plant_names()
@@ -129,6 +132,54 @@ def test_report_option_writes_to_another_file():
     assert code == 0 and (tmp / "other.md").exists() and not (tmp / "main.md").exists()
 
 
+def run_with(sites, fn, args=()):
+    """rr.main with a given run_live and the output captured: returns (code, printed text, report text)."""
+    tmp = Path(tempfile.mkdtemp())
+    sites_path = tmp / "sites.json"
+    sites_path.write_text(json.dumps({"sites": sites}), encoding="utf-8")
+    out = io.StringIO()
+    with contextlib.redirect_stdout(out):
+        code = rr.main(list(args), sites_path=sites_path, report_path=tmp / "report.md", fixtures_dir=tmp / "fx", run_live_fn=fn)
+    return code, out.getvalue(), (tmp / "report.md").read_text(encoding="utf-8")
+
+
+def test_a_rate_limit_stops_the_run_instead_of_hammering_the_service():
+    calls = []
+
+    def limited(lat, lon, radius_m, use_cache, refresh):
+        calls.append(lat)
+        if lat == 5.0:
+            raise RateLimited("Open-Meteo says too many requests (Hourly API request limit exceeded)")
+        return fake_run_live(lat, lon, radius_m, use_cache, refresh)
+
+    code, printed, report = run_with([base("a"), base("b", lat=5.0), base("c", lat=6.0), base("d", lat=7.0)], limited)
+    assert calls == [20.0, 5.0]                                   # c and d were never sent
+    assert code == 1
+    assert "Hourly API request limit exceeded" in printed         # the reason is shown, not hidden
+    assert "Not run yet: c, d" in printed and "run the same command again" in printed
+    assert "| a |" in report and "| b |" in report and "| c |" not in report   # finished work is kept
+
+
+def test_pause_waits_only_after_a_site_that_was_measured_live():
+    waits = []
+    real_sleep = rr.time.sleep
+    rr.time.sleep = waits.append
+    try:
+        def cached_or_live(lat, lon, radius_m, use_cache, refresh):
+            env, t = fake_run_live(lat, lon, radius_m, use_cache, refresh)
+            if lat == 6.0:                                        # this one came from the cache
+                CACHE_LOG[:] = [("store", "sqlite"), ("terrain", "hit")]
+            return env, t
+        sites = [base("a"), base("b", lat=6.0), base("c", lat=7.0)]
+        code, printed, _ = run_with(sites, cached_or_live, ["--pause", "90"])
+    finally:
+        rr.time.sleep = real_sleep
+    assert code == 0
+    assert waits == [90.0]          # after a (live), not after b (cached), not after the last site
+    run_with([base("a"), base("b", lat=7.0)], fake_run_live)      # no --pause: no waiting at all
+    assert waits == [90.0]
+
+
 def test_regression_harness_statuses():
     from tests import test_regions as tr
     from scripts import fixtures
@@ -153,5 +204,7 @@ if __name__ == "__main__":
     test_blocked_site_expectations_about_plants_fail_honestly()
     test_only_named_sites_and_unknown_names()
     test_report_option_writes_to_another_file()
+    test_a_rate_limit_stops_the_run_instead_of_hammering_the_service()
+    test_pause_waits_only_after_a_site_that_was_measured_live()
     test_regression_harness_statuses()
     print("all run_regions tests passed")

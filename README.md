@@ -4,7 +4,7 @@ Give it a location, and it tells you which trees could be planted there, why, an
 
 **Rules decide; the language model only explains, and it is off by default.** Every verdict comes from fixed rules over measured data and a sourced plant table. An optional local language model can rewrite the explanation in prose, but its text is checked claim by claim against the facts and discarded if it fails.
 
-> **Status:** v1.2.0 is a working, documented prototype. It is **not** validated for real planting decisions. Always confirm with a local soil test and local forestry advice. See [Known limits](#known-limits).
+> **Status:** v2.0.0 is a working, documented prototype. It is **not** validated for real planting decisions. Always confirm with a local soil test and local forestry advice. See [Known limits](#known-limits).
 
 ## What it does
 
@@ -41,7 +41,9 @@ From the project folder (the imports need it as the working folder; the plant ta
 python -m uvicorn app:app --reload
 ```
 
-Open <http://127.0.0.1:8000>. Paste "lat, lon" copied from Google Maps, or pick a test site, then click **Analyse**. A place measured for the first time takes 1-2 minutes; a cached place takes seconds. Ticking **Offline demo values** under Advanced needs no Earth Engine.
+Open <http://127.0.0.1:8000>. Click the map, paste "lat, lon" copied from Google Maps, type the coordinates or pick a test site, then click **Analyse**. A place measured for the first time takes 1-2 minutes; a cached place takes seconds. Ticking **Offline demo values** under Advanced needs no Earth Engine.
+
+A click on the map only places the point, and a marker can be dragged; nothing runs until you press Analyse. The circle on the map has the radius from Advanced. Your browser loads the map tiles from OpenStreetMap's server, so they need internet; the form works without them.
 
 The app has no login and shows raw error text. Run it on your own computer only.
 
@@ -116,7 +118,7 @@ python -m tests jobs storage     # only some files
 python -m tests.test_jobs        # one file, with its full output
 ```
 
-`test_fixtures` and `test_regions` need `data/fixtures/` (created by `python -m scripts.export_fixtures` for the six original test sites and `python -m scripts.run_regions` for the Phase 7 sites). `run_regions` runs the sites listed in `data/phase7_sites.json` and compares the result with expectations written *before* the run; it refuses a site until those are filled in. `test_app` needs `httpx`.
+`test_fixtures` and `test_regions` need `data/fixtures/` (created by `python -m scripts.export_fixtures` for the six original test sites and `python -m scripts.run_regions` for the Phase 7 sites). `run_regions` runs the sites listed in `data/phase7_sites.json` and compares the result with expectations written *before* the run; it refuses a site until those are filled in. Open-Meteo's free service limits how many ten-year requests it answers: when many new places are measured in one go, add `--pause 120` to wait between them (a 429 answer stops the run and names the limit that was hit; places already measured are cached). `test_app` needs `httpx`.
 
 `test_jobstore` always tests the memory store; set `SYLVAN_TEST_REDIS_URL` (a Redis database you do not need: it deletes `sylvan:job:*` keys there) to include Redis, or run it inside Docker, from the `docker/` folder: `docker compose run --rm -e SYLVAN_TEST_REDIS_URL=redis://redis:6379/15 app python -m tests.test_jobstore`.
 
@@ -139,9 +141,9 @@ The rainfall check against published normals (offline) is `python -m scripts.che
 
 ## Known limits
 
-- The built-up warning can miss houses on wooded hill slopes; barren natural land also gets the bare-or-built-up warning.
-- The building-outline share is an extra number: the gate, the plant matching and the explanation do not use it. The outlines are a May 2023 snapshot, so newer buildings are missing, and some small crowded roofs have no outline, so the share is a floor. If no outline exists within 5 km of the point, the result says there is no footprint data instead of 0%.
-- Gate thresholds rest on few sites. The rainfall reading at Leh was checked against published normals and is far too high; the page now says so at 2,000 m and above. Solapur is inconclusive, and other mountain or rain-shadow places are unchecked.
+- The built-up warning relies on satellite land cover. At Kochi it read 37% as built, just under the 40% line, and at Darjeeling it read the town as 61% water and blocked the place for that reason. Barren natural land also gets the bare-or-built-up warning.
+- The building-outline share is an extra number: the gate, the plant matching and the explanation do not use it. The outlines are a May 2023 snapshot, so newer buildings are missing, and some small crowded roofs have no outline, so the share is a floor. If no outline exists within 5 km of the point, the result says there is no footprint data instead of 0%. On 27 saved places the share was 35.6% to 46.6% in the four dense town cores and 5.6% or less everywhere else. A warning based on it is a candidate for the next version and has not been built.
+- Gate thresholds rest on few sites. The cropland rule warned on natural grassland and scrub at Cherrapunji and Dive Ghat, and missed farmland at Anantapur by 0.004 of dry-season greenness. It does not see orchards or tea (Malihabad, Dibrugarh), and tidal mangrove forest (Sundarbans) gets no warning. The rainfall reading at Leh was checked against published normals and is far too high; the page says so at 2,000 m and above. Solapur is inconclusive, and the 12 places added in v2.0.0 have no rainfall reference yet.
 - Every plant has a rainfall minimum and an altitude limit. Each is the end of a published range for where the tree grows, not a tested limit, so an irrigated planting outside the range may still work. Babul's altitude comes from a sheet for a different subspecies. Chir pine is a Himalayan species and the matcher does not check its range. 16 plants have no absolute rainfall maximum, 14 no absolute temperature limits and 17 no absolute pH limits.
 - One analysis runs at a time. Job records live in memory, or in Redis with `SYLVAN_JOBS=redis` (Docker); either way the work runs in threads inside the app, so a restart cuts off a running job and it is reported as failed. Redis holds job records only (one hour, nothing on disk, no password, not reachable from outside Docker); the optional model's fact sheet stays in the app's memory, so after a restart the rewrite button on an old analysis asks you to run the place again.
 
@@ -149,7 +151,7 @@ The complete list, with the reasons behind each decision, is in [`HANDOFF.md`](H
 
 ## Data sources
 
-[FAO ECOCROP](https://ecocrop.apps.fao.org/) and the [World Agroforestry Agroforestree Database](https://apps.worldagroforestry.org/treedb2/) (plant requirements, with single values from the Botanical Survey of India, ICAR journals, Useful Tropical Plants and the Flora of Pakistan, each cited in the plant's row); [SoilGrids 2.0](https://soilgrids.org/) and [OpenLandMap](https://openlandmap.org/) (soil); Copernicus Sentinel-2 and USGS SRTM through [Google Earth Engine](https://earthengine.google.com/); [Open-Meteo](https://open-meteo.com/) (climate); [Google Open Buildings V3](https://sites.research.google/open-buildings/) building outlines (inferred from imagery in May 2023, licence CC-BY-4.0).
+[FAO ECOCROP](https://ecocrop.apps.fao.org/) and the [World Agroforestry Agroforestree Database](https://apps.worldagroforestry.org/treedb2/) (plant requirements, with single values from the Botanical Survey of India, ICAR journals, Useful Tropical Plants and the Flora of Pakistan, each cited in the plant's row); [SoilGrids 2.0](https://soilgrids.org/) and [OpenLandMap](https://openlandmap.org/) (soil); Copernicus Sentinel-2 and USGS SRTM through [Google Earth Engine](https://earthengine.google.com/); [Open-Meteo](https://open-meteo.com/) (climate); [Google Open Buildings V3](https://sites.research.google/open-buildings/) building outlines (inferred from imagery in May 2023, licence CC-BY-4.0); [Leaflet](https://leafletjs.com/) 1.9.4 (BSD 2-Clause, copied into `static/vendor/leaflet/` with its licence); map tiles from [OpenStreetMap](https://www.openstreetmap.org/copyright) (© OpenStreetMap contributors, shown on the map); the Atkinson Hyperlegible typeface (SIL Open Font License 1.1, copied into `static/fonts/` with its licence).
 
 ## License
 

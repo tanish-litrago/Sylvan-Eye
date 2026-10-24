@@ -2,7 +2,7 @@
 
 Purpose: a running record so any new session (or Claude instance) can pick up the project without re-asking. Update this file at the end of each phase. **Never put API keys or credentials in this file.**
 
-Last updated: v1.2.0, 2026-10-20 (data you can trust: rainfall check 7e, high-mountain note, folder layout 7f, plant data 7g). Before that: v1.1.0, 2026-10-18 (Docker: app, Postgres cache, Redis job records; built and checked by the user, see sections 4 Docker row, 7d and 8). Before that: after Phase 7 (all seven phases done; open items are listed at the top of section 11; earlier: Phase 6 web UI, Phase 5 explainer, Phase 4 matcher)
+Last updated: v2.0.0, 2026-10-24 (building-outline signal, map input, new page, second Phase 7 round; see section 12). Before that: v1.2.0, 2026-10-20 (data you can trust: rainfall check 7e, high-mountain note, folder layout 7f, plant data 7g). Before that: v1.1.0, 2026-10-18 (Docker: app, Postgres cache, Redis job records; built and checked by the user, see sections 4 Docker row, 7d and 8). Before that: after Phase 7 (all seven phases done; open items are listed at the top of section 11; earlier: Phase 6 web UI, Phase 5 explainer, Phase 4 matcher)
 
 ---
 
@@ -324,7 +324,7 @@ Expectations were written before the run (commit history of `phase7_sites.json`)
 - **v1.0.0** = phases 1-7 (this state), tagged with `git tag -a v1.0.0` after the README and CHANGELOG are committed and the tests pass; the GitHub release text is the v1.0.0 section of `CHANGELOG.md`.
 - **v1.1.0** (built and checked by the user 2026-10-18; tag with `git tag -a v1.1.0` after the README, CHANGELOG and HANDOFF are committed): Docker with app, Postgres and the Redis job store (section 4, Docker row; tests in 7d).
 - **v1.2.0** (built 2026-10-20; the user commits everything once and tags `git tag -a v1.2.0`): data you can trust: rainfall check against published normals (7e), a limit note on the page at 2,000 m and above, Amla's rainfall, Chir pine's altitude, the 14 rainfall floors and the 13 altitude limits (7g), and the folder layout (7f).
-- **v2.0.0** (planned): better signals and wider testing: a building-footprint signal for hill towns, a second Phase 7 round (more regions, more cropland sites to validate the 0.24 cut-off), map-click input.
+- **v2.0.0** (built 2026-10-24): a building-outline measurement, a second Phase 7 round, map input and a new page. Section 12 has the record and the next steps.
 
 ### Status after Phase 7 (open items, most valuable first)
 
@@ -359,3 +359,106 @@ The v1 goal is met: one location in, data fetched, terrain read, plants grouped 
 5a. **Phase 7: done** (see the phase table and section 8). The original plan is kept in git history.
 5b. **Docker: done (v1.1.0, 2026-10-18).** The three layers were built in order and run by the user; see section 7d for what was run. If the Ollama button cannot reach Ollama from inside Docker, set the Windows variable `OLLAMA_HOST=0.0.0.0` and restart Ollama (this exposes Ollama to the local network: only on a network you trust).
 6. Later/optional: find a true degraded natural-land test site; monsoon cloud masking; WorldCover or JRC water cross-check; cross-check reanalysis rainfall against rain-gauge data.
+
+---
+
+## 12. v2.0.0 (2026-10-24)
+
+Better signals, wider testing, a new page. Rules decide, the language model only explains (off by default), the claim guard and the gate are unchanged. The user ran the checks; Claude wrote the code and the documents. Heavy research was done by Gemini at the user's request; Claude opened the pages behind its figures (see 12g).
+
+### 12a. What was built
+
+- **Building-outline share** (`phases/phase2_footprints.py`, new). Share of the circle covered by Google Open Buildings V3 outlines, confidence 0.65 and up (every outline in the dataset), polygons cut at the circle edge, overlaps not merged. Own `CACHE_VERSION` (1) and cache entry, called from `run_live` after climate; the result is added to a copy of the terrain dict as `terrain["footprints"]`, so `run_live` still returns `(env, terrain)`. No outline within 5 km of the point gives `coverage: "no_data"` and `share: None`; a failed lookup gives `coverage: "error"` and is not cached. `jobs._analyze` puts it in the result as `footprints`; the job stage line has a new step. The fact sheet, the template text and the claim guard do not see it.
+- **New page** (`static/index.html`, `style.css`, `app.js`). Two columns on wide screens, one on narrow ones; map (Leaflet 1.9.4 in `static/vendor/leaflet/`, OpenStreetMap tiles, tile address and credit are two constants at the top of the map section of `app.js`); Atkinson Hyperlegible in `static/fonts/`; footprint block; one-line empty tiers; 44 px controls. Everything the server sends still goes in with `textContent`.
+- **Phase 7 round 2**: 12 new sites in `data/phase7_sites.json` (22 in total), report column "Outlines (share, count)", `run_regions --pause SECONDS`.
+- **Open-Meteo 429**: `RateLimited` in `phases/phase4_inputs.py` carries the service's reason; `run_regions` stops on it.
+
+### 12b. Decisions made in v2.0.0
+
+Each decision was offered as options with a pick marked; the user chose.
+
+| # | Decision | Reason |
+|---|---|---|
+| 1 | Start with new signals (building outlines), then more regions, then the page | The page has to show what the signal adds |
+| 2 | The number is the share of the circle covered by outlines (not a count per hectare) | Comparable with the land-cover share; small and large roofs weigh by area |
+| 3 | Confidence cut-off 0.65 (all outlines) | Chosen by Claude on the user's "do what is best" after both screenshots: the 0.65 to 0.75 outlines mostly sat on small real roofs; the cut-off moves Shimla and Varanasi by under 1 point |
+| 4 | Visual check of outlines on satellite in the Earth Engine Code Editor | The numbers could not say whether the dataset missed houses |
+| 5 | Own cached measurement, not a change to `get_terrain_data` | No re-measuring of cached terrain, fixtures stay valid, a failure does not break terrain |
+| 6 | No outline within 5 km means "no data", not 0% | Empty and missing look the same otherwise. The 5 km is a judgement, not a sourced figure |
+| 7 | Extra number only: gate, matching, fact sheet and text unchanged | Claim guard unaffected; calibrate first |
+| 8 | Fixtures gain `footprints` by re-running the two existing exporters | No new script |
+| 9 | Job stage line: log the lookup and add a stage | The page would otherwise say "Matching plants" while still fetching |
+| 10 | The page serves all three readers; the planner wins when they conflict | The project is for the user's resume |
+| 11 | Two columns on wide screens (tabs stay rejected) | Warnings stay first and open; the map stays in view |
+| 12 | Leaflet copied into `static/`, OpenStreetMap's own tiles | No CDN at runtime, free; OSM's tile policy read on the official page |
+| 13 | Frog colours kept, lime reduced to one accent, neutral "no warnings" banner | A green box can read as an all-clear |
+| 14 | One typeface, Atkinson Hyperlegible, bundled | Distinct letterforms, tabular figures, OFL |
+| 15 | Footprint block "Also measured, not used for matching" | Keeps it out of the inputs the matching uses |
+| 16 | "In plain words" stays always shown | HANDOFF's earlier decision stands |
+| 17 | A map click only places the point; Analyse runs it | Each new place costs 1-2 minutes |
+| 18 | Responsive layout, tested with the browser's device mode | The app listens on 127.0.0.1 only |
+| 19 | Build in steps with a screenshot after each | Claude cannot see the user's browser; the user later asked for steps 2 to 5 in one go |
+| 20 | Second Phase 7 round, Gemini researches, Claude codes | The user's choice; Claude still opens the pages behind any figure |
+
+### 12c. Tests and checks
+
+- `python -m tests`: 16 of 16 test files (new: `test_footprints.py` (7 tests, including a skip-if-missing check of real shares on the saved fixtures), `test_climate_fetch.py` (4)). Changed: `test_jobs.py` (stage, `footprints` in the result), `test_run_live.py` and `test_storage.py` (the footprint fetch is faked, so no test reaches Earth Engine), `test_app.py` (fonts and licence served, Leaflet files and script order, no Referrer-Policy header or meta tag, https tile address and credit, no `innerHTML`), `test_run_regions.py` (report column, stop on a rate limit, `--pause`), `test_rainfall_check.py` (see 12f). Each new test was shown to fail when the code it guards was broken on purpose.
+- Claude's sandbox (not the user's machine): the real app driven by a headless Chromium at 1440 px and 390 px, placeholder map tiles, and the saved Shimla fixture plus a footprint entry standing in for Earth Engine. Map click, a second click inside the circle, marker drag, typed and pasted coordinates, site menu, radius change, an Analyse run, the three footprint states, keyboard order, tap sizes and no sideways scrolling all passed (25 scripted checks plus the phone checks). This is not a test file in the repository.
+- Run by the user: the page with real OpenStreetMap tiles (the tiles loaded on the `127.0.0.1` page), Docker with the new footprint entry in the raw result, and the 12 new places live.
+- Not seen by anyone: the map and the footprint block inside Docker (only the raw result entry was checked there), and the page on a real phone.
+
+### 12d. Second Phase 7 round (report `data/phase7_report_round2.md`, run 2026-10-24)
+
+Points were checked by the user on the Google Maps satellite view (with Gemini's help, as the user described it) and moved where needed; the user accepted Claude's expectations, and the three judgement calls, before any run. Status: A = accepted (matched), K = known issue (documented miss; the test expects it to persist). Outlines = share of the circle covered (count).
+
+| Site | You expected / system gave | Outlines | Status |
+|---|---|---|---|
+| ludhiana | warning (cropland) / warning | not read here (in its fixture) | A |
+| hisar | warning (cropland) / warning | 0.4% (36) | A |
+| pampore | warning (cropland) / warning | 0.1% (7) | A |
+| kolkata-core | warning (built-up) / warning | 46.6% (3090) | A |
+| anantapur | warning (cropland) / none | 1.8% (30) | K |
+| malihabad | warning / none | 0.0% (0) | K |
+| dibrugarh | warning / none | 0.1% (14) | K |
+| dive-ghat | none / warning (cropland) | 0.0% (0) | K |
+| cherrapunji | none / warning (cropland) | 0.0% (2) | K |
+| darjeeling | warning (built-up) / blocked | 41.8% (2387) | K |
+| kochi | warning (built-up) / none | 43.8% (2328) | K |
+| sundarbans | warning (water) / none | 0.0% (0) | K |
+
+All plant expectations (options and ruled-out) held at every site that was not blocked; the only plant mismatch is Deodar at Darjeeling, a consequence of the block. Expectations were drafted from the plant rules over wide ranges of the true climate, so a plant was listed only if the verdict was the same across the whole range.
+
+Findings (numbering continues from section 8):
+
+- **P7-10 The cropland rule cannot tell cropland from seasonal grassland.** Dry-season NDVI floor and swing: Cherrapunji grassland 0.116 / 98%, Dive Ghat scrub 0.149 / 93% (warned wrongly); Hisar 0.115 and Pampore 0.122 (cropland, warned rightly); Anantapur 0.244 (cropland, missed, 0.004 above the 0.24 cut-off); Morena scrub 0.275 (quiet, rightly, P7-3). Cherrapunji's value lies between two cropland values, so no cut-off on this number separates the two kinds of land. SYSTEM WRONG both ways, DOCUMENTED. Not retuned: the evidence says the signal is the problem, not the line.
+- **P7-11 Orchards, tea and tidal forest are invisible to the gate.** Malihabad (dry NDVI 0.534) and Dibrugarh (0.498) keep a steady canopy, and Sundarbans reads 89% dense vegetation and 1% water. The expectations were judgement calls (land in use, tidal land) made before the run. SYSTEM LIMIT, DOCUMENTED.
+- **P7-12 Land cover under-reads towns; the outline share does not.** Kochi read 37% bare or built (the line is 40%) against 43.8% outlines. Darjeeling read 61% as water or wet surface and 13% bare or built, so it was BLOCKED for the wrong reason (no planting is the right outcome) against 41.8% outlines. SYSTEM WRONG, DOCUMENTED.
+- **P7-13 Shimla (P7-4) re-read.** In the Code Editor screenshot (2026-10-22) the circle is mostly forest with a village as a strip on its east side; the outline share is 5.6% and the land cover said 7%, so the two signals agree. The user's "over 40% built-up" was an eyeball estimate, and the user agreed people misjudge such numbers by eye. The entry in `phase7_sites.json` and P7-4 above are left as they were written; read them with this note.
+- **P7-14 The building-outline share separates dense towns from everything else on the saved places.** 35.6% (city centre), 41.8% (Darjeeling), 43.8% (Kochi), 46.6% (Kolkata) against 5.6% (Shimla) or less at the other 23 places with a value (Ratnagiri 2.7%, Varanasi 2.4%, Anantapur 1.8%, ash dyke 1000 m 0.7%, Hisar 0.4%, Leh 0.3%, Solapur 0.2%, the rest 0.1% or 0). Ludhiana's value is in its fixture and was not read here. Four dense town cores and nothing between 6% and 35% is thin evidence for a rule. A warning based on it is the top candidate for the next version; it needs sites in the middle first (large villages, peri-urban edges).
+
+### 12e. Rainfall
+
+Pipeline rainfall at the new sites (mm, 2015-2024 average): Anantapur 699, Hisar 464, Malihabad 1054, Dibrugarh 3485, Dive Ghat 893, Cherrapunji 4978, Pampore 1388, Kolkata 1882, Darjeeling 3550, Kochi 2960, Sundarbans 2085 (Ludhiana is in its fixture). No reference page has been opened for any of them, so the rainfall check says "no reference" for all 12 (see 12f). Open question for the next version: Cherrapunji is a place where the rainfall figure may read too low, the opposite of Leh; it needs a reference first.
+
+### 12f. Caveats and known issues
+
+- **`NOT_YET_REFERENCED` in `tests/test_rainfall_check.py`.** The test used to require a sourced rainfall reference for every saved fixture. The 12 new places are listed in that set instead of being given unchecked numbers. The test still fails for any other fixture without a reference, and it fails when a listed place gets a reference without leaving the set. This relaxes one guard on purpose; remove the set as references are added.
+- **Open-Meteo's free limits** (600 calls a minute, 5,000 an hour and 10,000 a day, from Open-Meteo's own blog; a long request counts as several calls, and the blog's example is 260.7). Our request is ten years of daily data per place. A first attempt got one success, five 60-second timeouts and then 429s. After the stop-on-429 change and `--pause 120` the rerun finished without a wait. The exact weight of our request was not computed.
+- **OpenStreetMap tiles** come from OSM's own server under its tile usage policy (credit visible, a Referer sent, no prefetch or offline use). The service is best-effort and may block use; to switch provider change `TILE_URL` and `TILE_CREDIT` in `app.js`. The map is an aid: the form works without it.
+- **Outlines are a May 2023 snapshot** and some small crowded roofs have no outline, so the share is a floor. Overlapping outlines are not merged.
+- **Slashed zeros**: Atkinson Hyperlegible draws 0 with a slash. The user's screenshot shows it and no change was requested.
+- **The lime "Strong fit" bar** is below 3:1 against the page (1.5:1); the tier name is written out beside it.
+- **`static/vendor/leaflet/images/`** holds five PNGs the stylesheet refers to. The page does not use them (the marker is a CSS dot); they are there so the browser logs no missing files, and `test_app` checks they are served.
+
+### 12g. Working notes
+
+- Gemini's figures were checked by opening pages. Of the four pages checked, three did not match what Gemini quoted: the Anantapur page contradicts itself (580 mm in the text, 663.8 mm in its table, 508.2 mm on the district page); the Hisar line "around 500 mm" is not on the page (about 429 mm there, about 450 mm on the district site); the Lucknow 827.2 mm is the July to October rainfall, not the annual total. Ludhiana passed. The other pages were not opened, so no Gemini figure is recorded in any file. The extra figures Gemini added later (Darjeeling and Kochi temperatures, Sundarbans rainfall and temperature) were ranges, derived values or pages not opened, and were not used.
+- Expectations are what a person would want the answer to be, not what the system is expected to say. A mismatch is reviewed as a finding and the original expectation is kept when it changes.
+
+### 12h. Next steps (most valuable first)
+
+1. **A building-outline warning for the gate** (P7-14): choose a line between about 6% and 35% after adding sites in the middle, test it on all 28 places, keep the existing rule as it is. Needs the user's decision on the rule.
+2. **Rainfall references for the 12 new places** (12e, 12f), starting with Cherrapunji, each from a page that was opened; then shrink `NOT_YET_REFERENCED`.
+3. **The cropland rule** (P7-10): the dry-season floor does not separate cropland from seasonal grassland. Look for a second signal (for example how long the land stays bare, or the field pattern) before changing any line.
+4. **Look at the map and the footprint block inside Docker** (not seen) and the page on a phone.
+5. Older open items in section 11 still stand, except that the map click and the building-outline measurement are done.

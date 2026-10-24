@@ -1,5 +1,45 @@
 # Changelog
 
+## v2.0.0 - 2026-10-24
+
+Better signals, wider testing and a new page. The rules still decide and the language model only explains; the claim guard and the gate are unchanged.
+
+### Added
+
+- Building-outline share (`phases/phase2_footprints.py`): the share of the circle covered by Google Open Buildings V3 outlines (all outlines, confidence 0.65 and up; polygons cut at the circle edge). It is an extra number: the gate, the matching and the explanation do not use it. It has its own cache version and its own cache entry, so cached terrain, soil and climate stay valid. If no outline exists within 5 km of the point the result says "no data" instead of 0%, and a failed lookup is shown without stopping the analysis. The job result has a new `footprints` entry and the job's stage line has a new step, "Fetching building footprints".
+- Map on the page (Leaflet 1.9.4, copied into `static/vendor/leaflet/`; OpenStreetMap tiles). A click places the point, the marker can be dragged, and the circle shows the radius. The paste box, the site menu and the typed fields move the marker too. Nothing runs until Analyse is pressed.
+- Second Phase 7 round: 12 more places (farmland, an orchard, a tea estate, rain-shadow, very wet and cold-valley places, four dense towns, a mangrove forest), points checked on the satellite view by the user, expectations written before the run. 4 matched and 8 are documented known issues (see the findings below).
+- Phase 7 report: a column "Outlines (share, count)" and a line per site. `python -m scripts.run_regions --pause SECONDS` waits after each place that was measured live.
+- `RateLimited` (in `phases/phase4_inputs.py`): an Open-Meteo 429 answer is reported with the service's own reason (minute, hour or day limit), and `run_regions` stops instead of sending more requests.
+- Tests: `test_footprints.py` and `test_climate_fetch.py` are new (16 test files); `test_app.py` checks the bundled fonts and map files, that no Referrer-Policy is set (OpenStreetMap's tile policy needs the Referer), and that page code never uses `innerHTML`.
+
+### Changed: the page
+
+- Two columns on wide screens (map and inputs stay in view on the left, results on the right), one column on narrow screens. Warnings stay first and always open.
+- New look in the same frog colours: lime shrinks to one accent, surfaces are a pale tint of the belly colour, orange is used for warnings only and never for body text, and the "no warnings" banner is neutral. Contrast was checked for every text colour; the lime "Strong fit" bar is the one decoration under 3:1 and the tier name is written out next to it.
+- One typeface, Atkinson Hyperlegible, copied into `static/fonts/` (SIL OFL 1.1, licence included), with tabular figures. Nothing loads from a CDN; only the map tiles come from outside.
+- Empty tiers take one line each and keep their rule wording. A new block "Also measured, not used for matching" shows the building-outline share with its limit and credit. The "In plain words" text is unchanged and still always shown. Buttons, fields and map controls are at least 44 px high.
+- `tests/test_rainfall_check.py` lists the 12 new places as having no rainfall reference yet; each one leaves the list when it gets a sourced row.
+
+### Findings (second Phase 7 round, details in HANDOFF section 12)
+
+- Cropland rule: it warned on natural grassland and scrub (Cherrapunji, Dive Ghat) and missed farmland at Anantapur by 0.004. The dry-season greenness of Cherrapunji's grassland (0.116) lies between two cropland sites (Hisar 0.115, Pampore 0.122), so no cut-off on that number separates them.
+- Orchards and tea (Malihabad, Dibrugarh) and tidal mangrove forest (Sundarbans) get no warning; the gate has no rule for them.
+- Building outlines: 35.6% to 46.6% at the four dense town cores, 5.6% or less at every other place. Land cover read Kochi's town as 37% built and Darjeeling's as 61% water.
+
+### Tested
+
+- `python -m tests`: 16 of 16 test files.
+- Claude's sandbox: the real app in a headless browser at 1440 and 390 px with placeholder map tiles and a saved fixture standing in for Earth Engine (map clicks, marker drag, typing, pasting, site menu, radius, an Analyse run, keyboard order, tap sizes, no sideways scrolling).
+- Run by the user: the page with real OpenStreetMap tiles, the footprint entry in Docker, and the 12 new places live with Earth Engine.
+- Not seen: the map and the footprint block inside Docker, and the page on a real phone (the app listens on 127.0.0.1 only).
+
+### Upgrading
+
+- `docker compose up -d --build` from `docker/` (the image copies the whole project, so the fonts and Leaflet come with it).
+- A place that was cached before gets one extra lookup (seconds) the first time; cached terrain, soil and climate stay valid.
+- When measuring many new places, use `--pause 120` with `run_regions` (Open-Meteo's free service caps ten-year requests).
+
 ## v1.2.0 - 2026-10-20
 
 Data you can trust. The rules still decide and the language model only explains; the claim guard is unchanged.

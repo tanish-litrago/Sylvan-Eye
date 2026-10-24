@@ -41,6 +41,11 @@ CACHE_VERSION = 1
 # ---------------------------------------------------------------------------
 # Climate
 # ---------------------------------------------------------------------------
+class RateLimited(RuntimeError):
+    """Open-Meteo answered 429: its free limit is used up. The limits are per minute, per hour and per day,
+    and a request for a long period counts as many calls, so ten years of daily data per place adds up fast."""
+
+
 def fetch_daily(lat: float, lon: float, start_year: int, end_year: int):
     """Daily mean temperature (C) and rainfall (mm) from Open-Meteo's archive."""
     params = {
@@ -52,6 +57,13 @@ def fetch_daily(lat: float, lon: float, start_year: int, end_year: int):
         "timezone": "auto",
     }
     resp = requests.get(ARCHIVE_URL, params=params, timeout=60)
+    if resp.status_code == 429:
+        try:
+            reason = resp.json().get("reason", "")      # says which limit: minute, hour or day
+        except ValueError:
+            reason = ""
+        raise RateLimited("Open-Meteo says too many requests" + (f" ({reason})" if reason else "") +
+                          ". Wait and run again: places already measured are cached, so only the missing ones are fetched.")
     resp.raise_for_status()
     daily = resp.json().get("daily", {})
     return (
