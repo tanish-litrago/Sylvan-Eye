@@ -16,8 +16,7 @@ DATA = os.path.normpath(os.path.join(HERE, "..", "data"))
 # v2.0.0: the 12 places added in the second Phase 7 round have no reference page checked yet. The check
 # script shows them as "no reference" (it never guesses). Each one leaves this set when it gets a row in
 # rainfall_reference.csv with a source that was opened, and the test below insists on that.
-NOT_YET_REFERENCED = {"ludhiana", "anantapur", "hisar", "malihabad", "dibrugarh", "dive-ghat",
-                      "cherrapunji", "pampore", "kolkata-core", "darjeeling", "kochi", "sundarbans"}
+NOT_YET_REFERENCED = {"dive-ghat", "kolkata-core", "darjeeling", "sundarbans"}
 
 
 def test_every_reference_row_has_a_source_and_a_number():
@@ -52,8 +51,13 @@ def test_bands():
 def test_leh_is_far_off_and_nothing_else_is():
     rows = {r["fixture"]: r for r in cr.compare(cr.load_pipeline(), cr.load_reference())}
     assert rows["leh"]["band"] == "FAR OFF" and rows["leh"]["ratio"] > 5
+    # v2.1.0: a second known case. The weather grid smooths Cherrapunji's one-valley rainfall peak.
+    assert rows["cherrapunji"]["band"] == "FAR LOW", rows["cherrapunji"]
+    # v2.1.0: Pampore on the Kashmir valley floor; the grid reads about twice the district figure.
+    assert rows["pampore"]["band"] == "FAR OFF", rows["pampore"]
+    known = ("leh", "cherrapunji", "pampore")
     others = [r["fixture"] for r in rows.values()
-              if r["fixture"] != "leh" and r["fixture"] not in NOT_YET_REFERENCED and r["band"] != "ok"]
+              if r["fixture"] not in known and r["fixture"] not in NOT_YET_REFERENCED and r["band"] != "ok"]
     assert others == [], others          # if this changes, the saved data or the references changed
 
 
