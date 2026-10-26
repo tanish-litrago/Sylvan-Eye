@@ -1,0 +1,69 @@
+{
+  "env": {
+    "annual_mean_temp_c": 24.6,
+    "annual_rainfall_mm": 1041,
+    "elevation_m": 135.9,
+    "ph": 7.34,
+    "soil_texture": "medium"
+  },
+  "exported_on": "2026-10-25",
+  "site": {
+    "lat": 27.0725,
+    "lon": 80.518,
+    "name": "Sandila (Hardoi, Uttar Pradesh)",
+    "radius_m": 400,
+    "region": "Gangetic plain small town",
+    "slug": "sandila"
+  },
+  "terrain": {
+    "footprints": {
+      "coverage": "ok",
+      "coverage_check_m": 5000,
+      "license": "CC-BY-4.0",
+      "min_confidence": 0.65,
+      "polygons": 3977,
+      "share": 0.4576,
+      "source": "Google Open Buildings V3 polygons (Earth Engine), inferred May 2023"
+    },
+    "imagery": {
+      "date_range": [
+        "2025-01-01",
+        "2026-01-01"
+      ],
+      "images_used": 159,
+      "source": "Sentinel-2 SR median composite (Earth Engine)"
+    },
+    "land_cover_fractions": {
+      "bare_or_built": 0.785,
+      "dense_vegetation": 0.051,
+      "sparse_vegetation_or_crops": 0.163,
+      "water_or_wet_surface": 0.0
+    },
+    "location": {
+      "lat": 27.0725,
+      "lon": 80.518,
+      "radius_m": 400
+    },
+    "seasonality": {
+      "best_swing_year": 2023,
+      "big_swing_by_year": {
+        "2023": 0.099,
+        "2024": 0.077,
+        "2025": 0.095
+      },
+      "big_swing_fraction": 0.095,
+      "big_swing_fraction_best_year": 0.099,
+      "ndvi_dry_p10_mean": 0.099,
+      "ndvi_peak_p90_mean": 0.221,
+      "ndvi_range_mean": 0.122
+    },
+    "terrain": {
+      "elevation_m": 135.9,
+      "slope_deg": 2.23
+    },
+    "vegetation": {
+      "ndvi_mean": 0.172,
+      "ndwi_p90_mean": -0.142
+    }
+  }
+}

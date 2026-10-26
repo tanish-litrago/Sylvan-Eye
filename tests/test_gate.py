@@ -6,7 +6,10 @@ Each row: dry-season NDVI, big-swing share by year, and whether the land really 
 (the user's own check on the satellite view). If the cut-off moves, this table shows what changes.
 """
 
-from phases.phase4_matcher import GATE_DRY_FLOOR_MAX, GATE_SWING_WARN, check_eligibility
+import glob
+import json
+
+from phases.phase4_matcher import GATE_DRY_FLOOR_MAX, GATE_OUTLINE_WARN, GATE_SWING_WARN, check_eligibility
 
 # name, dry NDVI, swing by year, is it cropland?   (True / False / None = unclear; none left)
 SITES = [
@@ -76,9 +79,75 @@ def test_known_limit_built_up_hill_town_is_not_flagged():
     assert not any("built-up" in m for m in messages)
 
 
+# ---- building-outline warning (v2.1.0) ----------------------------------------------------------
+# name, outline share, bare/built, water, what the gate should add
+OUTLINES = [
+    ("Kochi",      0.438, 0.37, 0.01, "warning"),   # land cover read 37% (line 40%); the outlines say town
+    ("Kolkata",    0.466, 0.82, 0.01, "nothing"),   # the land-cover warning already says it: no second one
+    ("Darjeeling", 0.418, 0.13, 0.61, "note"),      # BLOCKED as water; the note explains, the block stays
+    ("Kalimpong",  0.296, 0.34, 0.00, "warning"),
+    ("Pirangut",   0.205, 0.10, 0.00, "warning"),   # lowest edge, user expected a warning
+    ("Kakdwip",    0.165, 0.05, 0.01, "nothing"),   # highest large village, user expected none
+    ("Shimla",     0.056, 0.07, 0.00, "nothing"),   # known limit: houses under trees stay under the line
+]
+
+
+def with_outline(share, built, water, coverage="ok"):
+    t = terrain(0.5, {})
+    t["land_cover_fractions"].update(bare_or_built=built, water_or_wet_surface=water)
+    t["footprints"] = {"share": share, "coverage": coverage}
+    return t
+
+
+def outline_messages(t):
+    blocked, messages = check_eligibility(t)
+    return blocked, [m for m in messages if "building outlines" in m]
+
+
+def test_outline_line_on_real_numbers():
+    for name, share, built, water, want in OUTLINES:
+        blocked, got = outline_messages(with_outline(share, built, water))
+        kind = "nothing" if not got else ("note" if got[0].startswith("NOTE") else "warning")
+        assert kind == want, (name, got)
+        assert blocked == (water >= 0.5), name        # the rule never changes the block
+
+
+def test_line_sits_between_the_largest_village_and_the_lowest_edge():
+    assert 0.165 < GATE_OUTLINE_WARN <= 0.205
+    assert outline_messages(with_outline(GATE_OUTLINE_WARN, 0.0, 0.0))[1]
+    assert not outline_messages(with_outline(GATE_OUTLINE_WARN - 0.001, 0.0, 0.0))[1]
+
+
+def test_no_outline_data_adds_nothing():
+    for cov in ("no_data", "error"):
+        assert not outline_messages(with_outline(None, 0.0, 0.0, cov))[1]
+    assert not outline_messages(terrain(0.5, {}))[1]  # no footprints key at all (older data, demo)
+
+
+def test_saved_fixtures_only_gain_a_message_and_never_change_the_block():
+    changed = []
+    for path in sorted(glob.glob("data/fixtures/*.json")):
+        t = json.load(open(path, encoding="utf-8"))["terrain"]
+        if "footprints" not in t:
+            continue
+        before = check_eligibility({k: v for k, v in t.items() if k != "footprints"})
+        after = check_eligibility(t)
+        assert before[0] == after[0], path
+        extra = [m for m in after[1] if m not in before[1]]
+        assert all(m in after[1] for m in before[1]), path       # old messages untouched
+        assert all("building outlines" in m for m in extra), path
+        if extra:
+            changed.append(path.split("/")[-1].split("\\")[-1])
+    assert "kochi.json" in changed and "darjeeling.json" in changed, changed
+
+
 if __name__ == "__main__":
     test_known_sites_get_the_right_cropland_answer()
     test_the_cut_off_sits_in_the_gap_between_cropland_and_the_next_site()
     test_ravine_scrub_that_swings_like_crops_is_not_flagged()
     test_known_limit_built_up_hill_town_is_not_flagged()
+    test_outline_line_on_real_numbers()
+    test_line_sits_between_the_largest_village_and_the_lowest_edge()
+    test_no_outline_data_adds_nothing()
+    test_saved_fixtures_only_gain_a_message_and_never_change_the_block()
     print("all gate tests passed")

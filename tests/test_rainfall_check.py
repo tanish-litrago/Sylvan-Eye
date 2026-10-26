@@ -16,7 +16,9 @@ DATA = os.path.normpath(os.path.join(HERE, "..", "data"))
 # v2.0.0: the 12 places added in the second Phase 7 round have no reference page checked yet. The check
 # script shows them as "no reference" (it never guesses). Each one leaves this set when it gets a row in
 # rainfall_reference.csv with a source that was opened, and the test below insists on that.
-NOT_YET_REFERENCED = {"dive-ghat", "kolkata-core", "darjeeling", "sundarbans"}
+# v2.1.0: Dive Ghat still has no page I could open. The 5 round-3 places below are new and not yet looked up;
+# Kuderu and Kakdwip share the district rows of Anantapur and Sundarbans (same districts).
+NOT_YET_REFERENCED = {"dive-ghat", "bellare", "mohali-sohana", "pirangut", "sandila", "kalimpong"}
 
 
 def test_every_reference_row_has_a_source_and_a_number():

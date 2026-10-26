@@ -1,0 +1,69 @@
+{
+  "env": {
+    "annual_mean_temp_c": 24.0,
+    "annual_rainfall_mm": 1145,
+    "elevation_m": 594.4,
+    "ph": 6.54,
+    "soil_texture": "heavy"
+  },
+  "exported_on": "2026-10-25",
+  "site": {
+    "lat": 18.511,
+    "lon": 73.6815,
+    "name": "Pirangut (Mulshi, west Pune fringe)",
+    "radius_m": 400,
+    "region": "Western Ghats peri-urban edge",
+    "slug": "pirangut"
+  },
+  "terrain": {
+    "footprints": {
+      "coverage": "ok",
+      "coverage_check_m": 5000,
+      "license": "CC-BY-4.0",
+      "min_confidence": 0.65,
+      "polygons": 683,
+      "share": 0.205,
+      "source": "Google Open Buildings V3 polygons (Earth Engine), inferred May 2023"
+    },
+    "imagery": {
+      "date_range": [
+        "2025-01-01",
+        "2026-01-01"
+      ],
+      "images_used": 39,
+      "source": "Sentinel-2 SR median composite (Earth Engine)"
+    },
+    "land_cover_fractions": {
+      "bare_or_built": 0.529,
+      "dense_vegetation": 0.016,
+      "sparse_vegetation_or_crops": 0.449,
+      "water_or_wet_surface": 0.006
+    },
+    "location": {
+      "lat": 18.511,
+      "lon": 73.6815,
+      "radius_m": 400
+    },
+    "seasonality": {
+      "best_swing_year": 2023,
+      "big_swing_by_year": {
+        "2023": 0.403,
+        "2024": 0.355,
+        "2025": 0.332
+      },
+      "big_swing_fraction": 0.332,
+      "big_swing_fraction_best_year": 0.403,
+      "ndvi_dry_p10_mean": 0.127,
+      "ndvi_peak_p90_mean": 0.332,
+      "ndvi_range_mean": 0.205
+    },
+    "terrain": {
+      "elevation_m": 594.4,
+      "slope_deg": 3.93
+    },
+    "vegetation": {
+      "ndvi_mean": 0.206,
+      "ndwi_p90_mean": -0.21
+    }
+  }
+}

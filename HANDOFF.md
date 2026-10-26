@@ -2,7 +2,7 @@
 
 Purpose: a running record so any new session (or Claude instance) can pick up the project without re-asking. Update this file at the end of each phase. **Never put API keys or credentials in this file.**
 
-Last updated: v2.0.0, 2026-10-24 (building-outline signal, map input, new page, second Phase 7 round; see section 12). Before that: v1.2.0, 2026-10-20 (data you can trust: rainfall check 7e, high-mountain note, folder layout 7f, plant data 7g). Before that: v1.1.0, 2026-10-18 (Docker: app, Postgres cache, Redis job records; built and checked by the user, see sections 4 Docker row, 7d and 8). Before that: after Phase 7 (all seven phases done; open items are listed at the top of section 11; earlier: Phase 6 web UI, Phase 5 explainer, Phase 4 matcher)
+Last updated: v2.1.0, 2026-10-26 (building-outline warning in the gate, rainfall references, claim-guard measurement, third Phase 7 round; see section 13). Before that: v2.0.0, 2026-10-24 (building-outline signal, map input, new page, second Phase 7 round; see section 12). Before that: v1.2.0, 2026-10-20 (data you can trust: rainfall check 7e, high-mountain note, folder layout 7f, plant data 7g). Before that: v1.1.0, 2026-10-18 (Docker: app, Postgres cache, Redis job records; built and checked by the user, see sections 4 Docker row, 7d and 8). Before that: after Phase 7 (all seven phases done; open items are listed at the top of section 11; earlier: Phase 6 web UI, Phase 5 explainer, Phase 4 matcher)
 
 ---
 
@@ -462,3 +462,111 @@ Pipeline rainfall at the new sites (mm, 2015-2024 average): Anantapur 699, Hisar
 3. **The cropland rule** (P7-10): the dry-season floor does not separate cropland from seasonal grassland. Look for a second signal (for example how long the land stays bare, or the field pattern) before changing any line.
 4. **Look at the map and the footprint block inside Docker** (not seen) and the page on a phone.
 5. Older open items in section 11 still stand, except that the map click and the building-outline measurement are done.
+
+## 13. v2.1.0 (2026-10-26)
+
+A building-outline warning for the gate, rainfall references for 11 more places, a measurement of the claim guard, and seven more test places. Rules decide, the language model only explains (off by default, Phase 5 only); the claim guard, the block rule and the plant matching are unchanged. The user ran the live checks; Claude wrote the code and the documents. Gemini's candidates were not used as data: every reference value below comes from a page Claude opened.
+
+### 13a. What was built
+
+- **Outline warning** (`GATE_OUTLINE_WARN = 0.185` in `phases/phase4_matcher.py`, inside `check_eligibility`). Uses `terrain["footprints"]` when its coverage is `ok`. At 18.5% or more: if the place is blocked, a NOTE is added (the water reading may be shade or roofs) and the block stays; otherwise, if the land-cover bare-or-built share is under the 40% line, a WARNING says the place may be built-up (the land-cover warning already says it above that line, so there is no second message). It never changes the blocked flag. Tests in `tests/test_gate.py`: real numbers for seven places, the line itself, missing outline data, and a pass over every saved fixture (the block never changes, old messages stay, only outline messages are added).
+- **Round 3 of Phase 7**: 7 sites in `data/phase7_sites.json` (29 in total).
+- **`scripts/guard_stats.py`** and `tests/test_guard_stats.py`: `python -m scripts.guard_stats [slug ...] [--model NAME]` asks the model about every saved place that is not blocked and counts what `explain()` did. It reads and prints only. The test uses a scripted explainer.
+- **Rainfall references** (`data/rainfall_reference.csv`), 11 rows added, see 13d.
+
+### 13b. Decisions made in v2.1.0
+
+| # | Decision | Why |
+|---|---|---|
+| D-21-1 | Round 3 is 7 places: 3 large villages, 2 peri-urban edges, 2 small towns, spread over land covers that can confuse the gate (dry Deccan, hill village under trees, delta with ponds, plains edge, ghat edge, plains town, wet hill town). | Both sides of the 6% to 35% gap needed evidence. |
+| D-21-2 | Expected gate before the run: villages none; edges and towns warning containing "built-up". Plant lists short, only clear mismatches. | What a person would want, not what the system says. |
+| D-21-3 | Outline line at 18.5%, the midpoint of the gap between the largest village (16.5%) and the lowest edge (20.5%), the same method as the 0.24 dry-floor line. | Any value in that gap fits all 35 places; the margin is about 2 points on each side. |
+| D-21-4 | Outlines high but land cover says water (Darjeeling): keep the block, add a note. | One example is too little to relax a block; Bhopal Lake and ash dyke 400 are real water with 0% outlines. |
+| D-21-5 | Cherrapunji and Pampore are named known cases in `test_rainfall_check` next to Leh, each pinned to its band. | The finding is real (a weather grid cannot hold a one-valley peak); documenting it beats hiding it. |
+| D-21-6 | No change to the cropland rule (13e) and none to the claim guard or prompt (13g). | The brief says change only if the evidence shows a problem. |
+
+The v2.0.0 decision that the outline share is "an extra number only" (section 12b) is lifted for the gate: the warning text carries the share, so the fact sheet and the fixed-rules text now contain it. The word "footprint" still does not appear in them, and plant matching does not use the share.
+
+### 13c. Round 3 results (user's own live run)
+
+| Site | Type | Outlines | Rain (mm) | Gate you / system | Result |
+|---|---|---|---|---|---|
+| kuderu | village, dry Deccan | 10.7% | 689 | none / none | match |
+| bellare | village, hill under trees | 6.8% | 3525 | none / none | match |
+| kakdwip | delta town with ponds | 16.5% | 1919 | none / none | match |
+| mohali-sohana | peri-urban edge | 23.3% | 906 | warning / warning | match |
+| pirangut | peri-urban edge, ghats | 20.5% | 1145 | warning / warning | match |
+| sandila | small plains town | 45.8% | 1041 | warning / warning | match |
+| kalimpong | wet hill town | 29.6% | 3487 | warning / warning | mismatch on the old gate, accepted after the outline warning |
+
+- **Kalimpong**: water 0%, bare or built 34% (under the 40% line), seasonal swing 46% in 3 of 3 years. The old gate warned only for the cropland swing rule (probably terraces), with no built-up warning. The outline warning (29.6%) supplies it. `test_regions` showed "pending (would match)" on the user's fixture, so it is `accepted`.
+- **Kochi** (43.8%, land cover 37%) is the only saved place where the new rule changes a result: from none to warning. Its status went from `known_issue` to `accepted`.
+- **Darjeeling** stays BLOCKED as water (61%) with 41.8% outlines, now with the note; its status stays `known_issue`. **Shimla** (5.6%) stays a known miss: houses under trees are under the line.
+- **Process slip**: the user ran the 7 places before committing `phase7_sites.json`, so git does not show that the expectations came first. They were written in the chat before the run and have not been changed (only `status` and `notes` were edited afterwards).
+- **Kakdwip** is a municipal town; the label "large village" is approximate.
+- The user said he checked each point on the satellite view himself; Claude cannot check this.
+- The user's fixtures for the 7 places and `data/phase7_round3_report.md` are in the repo; Claude never had them.
+
+### 13d. Rainfall references (all pages opened by Claude)
+
+| Place | Reference (mm) | Source | Pipeline / reference |
+|---|---|---|---|
+| Cherrapunji | 11359.4 | IMD Guwahati scientist quoted by PTI (udayavani.com), station, 1971-2020; second value 11413.4 from cherrapunjee.com (a resort site) | 0.44, FAR LOW |
+| Ludhiana | 749 | ICAR-CRIDA district plan | 1.13 |
+| Anantapur (and Kuderu) | 552 | ICAR-CRIDA district plan | 1.27 (Kuderu 1.25) |
+| Hisar | 455.1 | ICAR-CRIDA district plan | 1.02 |
+| Malihabad | 959.2 | ICAR-CRIDA plan, Lucknow district | 1.10 |
+| Dibrugarh | 2771.7 | ICAR-CRIDA district plan | 1.26 |
+| Pampore | 658.1 | ICAR-CRIDA plan, Pulwama district | 2.11, FAR OFF |
+| Kochi | 2838.8 | ICAR-CRIDA plan, Ernakulam district | 1.04 |
+| Darjeeling | 3334.3 | IMD Pune monograph, district mean 1989-2018 | 1.06 |
+| Kolkata | 1852.3 | same monograph | 1.02 |
+| Sundarbans (and Kakdwip) | 1959.2 | same monograph, South 24 Parganas | 1.06 (Kakdwip 0.98) |
+
+- **Not referenced**: Dive Ghat (Pune district spans 468 to 4,659 mm; a Purandar taluka figure of 544 mm appeared only second-hand and its report would not open), and the five round-3 places Bellare, Mohali, Pirangut, Sandila and Kalimpong. All six are in `NOT_YET_REFERENCED`.
+- **Blocked to Claude**: `kvk.icar.gov.in` (the East Khasi Hills and Darjeeling plans, and all West Bengal plans) and `darjeeling.gov.in` refuse automated access, so their figures were not used. A search result for the Shopian plan showed the same 658.1 as Pulwama, so that figure may be copied between plans; the Ludhiana CGWB figure (about 680) was seen in a search result and not opened.
+- The Darjeeling figures differ a lot between sources (ICAR 1,675 and the town figure 3,092, both unusable; a state water map 2,628, not opened as a source). The monograph was chosen because its period and method are stated. The PDF loads through a redirect to isignal.in.
+- All references except Cherrapunji are district figures. `test_rainfall_check` pins Leh (FAR OFF), Cherrapunji (FAR LOW) and Pampore (FAR OFF) and requires every other referenced place to be "ok".
+
+### 13e. The cropland rule (P7-10): explored, not changed
+
+Saved data only, 7 places labelled cropland (Hisar, Pampore, green farmland, Khapri, Varanasi, Solapur, Anantapur) against the places the rule warns on wrongly (Cherrapunji grassland, Dive Ghat scrub).
+
+| Signal | Cropland | Cherrapunji | Dive Ghat | Separates? |
+|---|---|---|---|---|
+| Slope (degrees) | 1.98 to 3.23 | 5.8 | 17.9 | yes, on this data |
+| Sparse vegetation or crops share | 0.72 to 0.99 | 0.53 | 0.74 | no (inside the cropland range) |
+| NDWI p90 | -0.38 to -0.15 | -0.12 | -0.29 | no |
+| Peak NDVI, NDVI range, elevation | | | | no (Pampore, cropland, sits at 1,604 m) |
+
+Slope is the only candidate and it does not meet the bar: there are two places without cropland, and no labelled cropland on a slope, while terraced fields exist (Kalimpong's cropland warning may be real terraces). How long the land stays bare and the field pattern are not in the saved data, so they could not be tested. To retest: label one sloped terraced cropland place and one flat grassland, add them as sites, and run the same table.
+
+### 13f. Docker (B)
+
+Seen by the user on 2026-10-26 after `docker compose up -d --build`: Docker version 29.8.1 (build 4a63305), Docker Compose v5.5.1, app, db and redis all "healthy", and the map working at `127.0.0.1:8000`. Still not seen: the page on a phone. Claude cannot run Docker.
+
+### 13g. Claim guard on `gemma4:e4b` (C), measured first
+
+One run of `python -m scripts.guard_stats` by the user on the 35 saved places (saved to `data/guard_stats_gemma4.txt`): 3 blocked (LLM not used), 29 accepted on the first try, 1 accepted after the retry, 2 fell back to the fixed text (32 asked). The five rejected attempts: plants left out of the answer (3), cut off at the length limit (2), a wrong claim of "no data" for a factor that had data (1). Read as one run, not a rate: temperature is 0.1 but the model is not deterministic. The guard did its job (nothing wrong reached the page, the fixed text is always shown), so the prompt, `num_predict` (2048) and the guard were left alone. If cut-offs matter later, raising `num_predict` is the first thing to try. The LLM is still off by default and Phase 5 only; no new dependencies.
+
+### 13h. Tests
+
+- `python -m tests`: 17 of 17 on the user's machine, 2026-10-26. New: `test_guard_stats.py`; extended: `test_gate.py`, `test_rainfall_check.py`.
+- Claude's sandbox cannot hold the 7 new fixtures, so `test_rainfall_check` was run there against simulated fixtures carrying the user's rainfall values; there it fails without them because the reference rows name Kuderu and Kakdwip.
+- Not run by Claude: Earth Engine, Docker, Ollama, a browser.
+
+### 13i. Caveats and known issues
+
+- The outline line rests on 35 places and one edge site near its upper side. Houses under trees stay below it.
+- The explainer's high-altitude note still says a hill town with no built-up warning is not necessarily free to plant. It is still true; the text was not changed.
+- Dive Ghat and five places have no rainfall reference.
+- Cherrapunji's reference comes from a news quote of an IMD scientist and a resort site's table, not from an IMD page.
+- Pampore's 658.1 mm may be copied from the Shopian plan.
+
+### 13j. Next steps (most valuable first)
+
+1. Rainfall references for Dive Ghat and the five round-3 places (a taluka or station figure for Dive Ghat).
+2. Retest the slope signal for the cropland rule with a labelled sloped terraced cropland place and a flat grassland (13e).
+3. Look at the footprint block inside Docker and the page on a phone.
+4. Relax the water block for high-outline places only after a second false-water case turns up (D-21-4).
+5. Older open items in sections 11 and 12h still stand, except the three that this section closes (items 1 to 3 of 12h) and the map in Docker.

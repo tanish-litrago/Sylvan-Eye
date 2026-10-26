@@ -11,7 +11,8 @@
     "Commit this file before the first run: the commit time proves your expectations came first.",
     "Provenance: the expectations for all ten sites were drafted by Claude from general knowledge (not from the gate rules and before any result existed) and accepted unchanged by the user on 2026-10-13. Land types are the user's confirmed observations.",
     "status: accepted = the system's behaviour is accepted and test_regions.py requires the expectations to match; known_issue = the system is wrong in a documented way and test_regions.py requires the miss to persist (so a fix shows up); pending = no verdict yet. original_expectation holds the blind expectations as committed before the first run; the fields above them were corrected after the review (see 'review').",
-    "Round 2 (v2.0.0, 2026-10-23): 12 more sites, listed after the first ten. Candidates came from Gemini; on 2026-10-23 the user checked each point on the satellite view and accepted the expectations, which Claude had drafted before any run (see notes on each site). The first run was reviewed on 2026-10-24: 4 sites matched (accepted) and 8 are known issues (see the review field)."
+    "Round 2 (v2.0.0, 2026-10-23): 12 more sites, listed after the first ten. Candidates came from Gemini; on 2026-10-23 the user checked each point on the satellite view and accepted the expectations, which Claude had drafted before any run (see notes on each site). The first run was reviewed on 2026-10-24: 4 sites matched (accepted) and 8 are known issues (see the review field).",
+    "Round 3 (v2.1.0, 2026-10-25): 7 more sites, listed after round 2, for the building-outline warning: 3 large villages, 2 peri-urban edges and 2 small towns, spread over land covers that can confuse the gate. Each point was checked by the user on the satellite view; Claude drafted the expectations before any run. Status is pending until the first run is reviewed."
   ],
   "sites": [
     {
@@ -807,8 +808,8 @@
         "Sal"
       ],
       "expect_not_strong": [],
-      "status": "known_issue",
-      "notes": "Round 2 (v2.0.0). On 2026-10-23 the user said he checked this point on the Google Maps satellite view himself (with Gemini's help, as he described it) and gave the point and land_type below. Expectations were drafted by Claude before any run from the plant rules and general knowledge (broad climate ranges; a plant is listed only if the matcher's verdict is the same across the whole range of climate, soil pH and soil texture) and accepted by the user on 2026-10-23 before any run, including the judgement calls. No unverified figure is used or recorded. First run reviewed on 2026-10-24 (see status and review). A dense-town site for the building-outline number.",
+      "status": "accepted",
+      "notes": "Round 2 (v2.0.0). On 2026-10-23 the user said he checked this point on the Google Maps satellite view himself (with Gemini's help, as he described it) and gave the point and land_type below. Expectations were drafted by Claude before any run from the plant rules and general knowledge (broad climate ranges; a plant is listed only if the matcher's verdict is the same across the whole range of climate, soil pH and soil texture) and accepted by the user on 2026-10-23 before any run, including the judgement calls. No unverified figure is used or recorded. First run reviewed on 2026-10-24 (see status and review). A dense-town site for the building-outline number. v2.1.0: fixed by the outline warning (43.8% >= 18.5%); the known issue no longer reproduces.",
       "original_expectation": {
         "expect_gate": "warning",
         "expect_warning_contains": "built-up",
@@ -859,6 +860,171 @@
         "expect_not_strong": []
       },
       "review": "Review 2026-10-24: land cover read 89% dense vegetation and 1% water, and the gate has no concept of tidal forest (SYSTEM LIMIT; judgement call accepted before the run). The expectation stays; the test expects the miss to persist."
+    },
+    {
+      "slug": "kuderu",
+      "region": "Dry Deccan village",
+      "name": "Kuderu large village (Anantapur)",
+      "intended": "large village in dry Rayalaseema country",
+      "lat": 14.73051282285115,
+      "lon": 77.4302253808614,
+      "radius_m": 400,
+      "verified": true,
+      "land_type": "Compact cluster of flat-roofed village houses surrounded by dry red-brown fallow fields and low scrub. Trap seen: bare ground and dry fallow plots between the village lanes.",
+      "expect_gate": "none",
+      "expect_warning_contains": "",
+      "expect_plants": [
+        "Neem",
+        "Babul"
+      ],
+      "expect_ruled_out": [
+        "Sal",
+        "Deodar",
+        "Bamboo (male bamboo)"
+      ],
+      "expect_not_strong": [],
+      "status": "accepted",
+      "notes": "Round 3 (v2.1.0). On 2026-10-25 the user said he checked this point on the Google Maps satellite view himself and gave the point and what he sees (land_type); the candidates came from Gemini. Expectations drafted by Claude before any run from the plant limits in plants.csv and general knowledge; a plant is listed only if its verdict should be the same across the whole plausible range of climate and altitude. Gate expectation (user choice A, 2026-10-25): villages none; edges and towns warning containing built-up. Not accepted line by line yet: the user accepts or changes them before the commit. Rain should be near the Anantapur district figure, so Sal (1000 mm floor), Bamboo (1200 mm floor) and Deodar (altitude minimum 1200 m) are clear. Run 2026-10-26 (user's own run): outlines 10.7%. Matched all expectations."
+    },
+    {
+      "slug": "bellare",
+      "region": "Western Ghats foothill village",
+      "name": "Bellare large village (Sullia, Dakshin Kannada)",
+      "intended": "large hill village, houses under trees",
+      "lat": 12.6625,
+      "lon": 75.367,
+      "radius_m": 400,
+      "verified": true,
+      "land_type": "Hill-valley village with tiled-roof houses and homesteads under dense arecanut, coconut and forest canopy. Trap seen: heavy tree cover directly over the roofs.",
+      "expect_gate": "none",
+      "expect_warning_contains": "",
+      "expect_plants": [
+        "Jamun"
+      ],
+      "expect_ruled_out": [
+        "Khejri",
+        "Babul",
+        "Deodar"
+      ],
+      "expect_not_strong": [],
+      "status": "accepted",
+      "notes": "Round 3 (v2.1.0). On 2026-10-25 the user said he checked this point on the Google Maps satellite view himself and gave the point and what he sees (land_type); the candidates came from Gemini. Expectations drafted by Claude before any run from the plant limits in plants.csv and general knowledge; a plant is listed only if its verdict should be the same across the whole plausible range of climate and altitude. Gate expectation (user choice A, 2026-10-25): villages none; edges and towns warning containing built-up. Not accepted line by line yet: the user accepts or changes them before the commit. Very high rainfall (well above 2300 mm), so Khejri (900 mm ceiling) and Babul (2300 mm ceiling) are clear; Deodar needs 1200 m. Judgement call: a village hidden under canopy may read as forest, so the outline share and the land cover could differ a lot. Run 2026-10-26 (user's own run): outlines 6.8%. Matched all expectations."
+    },
+    {
+      "slug": "kakdwip",
+      "region": "Hooghly delta village",
+      "name": "Kakdwip large settlement (South 24 Parganas)",
+      "intended": "large delta settlement with ponds",
+      "lat": 21.8765,
+      "lon": 88.1885,
+      "radius_m": 400,
+      "verified": true,
+      "land_type": "Delta settlement where house compounds are interleaved with rectangular backyard ponds (pukurs) and palm and bamboo groves. Trap seen: many domestic ponds and tree rings inside the settlement. Kakdwip is a municipal town, so the type label 'village' is approximate.",
+      "expect_gate": "none",
+      "expect_warning_contains": "",
+      "expect_plants": [
+        "Casuarina"
+      ],
+      "expect_ruled_out": [
+        "Khejri",
+        "Chir pine",
+        "Deodar"
+      ],
+      "expect_not_strong": [],
+      "status": "accepted",
+      "notes": "Round 3 (v2.1.0). On 2026-10-25 the user said he checked this point on the Google Maps satellite view himself and gave the point and what he sees (land_type); the candidates came from Gemini. Expectations drafted by Claude before any run from the plant limits in plants.csv and general knowledge; a plant is listed only if its verdict should be the same across the whole plausible range of climate and altitude. Gate expectation (user choice A, 2026-10-25): villages none; edges and towns warning containing built-up. Not accepted line by line yet: the user accepts or changes them before the commit. Judgement call: many small ponds could push the water share high; a person would want at most a warning, so none is expected. Run 2026-10-26 (user's own run): outlines 16.5%. Matched all expectations."
+    },
+    {
+      "slug": "mohali-sohana",
+      "region": "Punjab plains peri-urban edge",
+      "name": "Sohana / Sectors 78-79 fringe, Mohali",
+      "intended": "peri-urban edge bordering irrigated cropland",
+      "lat": 30.6785,
+      "lon": 76.7215,
+      "radius_m": 400,
+      "verified": true,
+      "land_type": "Peri-urban residential blocks and urban-village houses directly bordering irrigated plains cropland. Trap seen: graded bare-ground plots and active cropland inside the same circle.",
+      "expect_gate": "warning",
+      "expect_warning_contains": "built-up",
+      "expect_plants": [
+        "Sissoo / Shisham",
+        "Babul"
+      ],
+      "expect_ruled_out": [
+        "Deodar",
+        "Chir pine"
+      ],
+      "expect_not_strong": [],
+      "status": "accepted",
+      "notes": "Round 3 (v2.1.0). On 2026-10-25 the user said he checked this point on the Google Maps satellite view himself and gave the point and what he sees (land_type); the candidates came from Gemini. Expectations drafted by Claude before any run from the plant limits in plants.csv and general knowledge; a plant is listed only if its verdict should be the same across the whole plausible range of climate and altitude. Gate expectation (user choice A, 2026-10-25): villages none; edges and towns warning containing built-up. Not accepted line by line yet: the user accepts or changes them before the commit. Chir pine is ruled out only by its 400 m altitude minimum; Mohali is about 310 m, so this is close to the edge and is the weakest expectation here. Run 2026-10-26 (user's own run): outlines 23.3%. Matched all expectations."
+    },
+    {
+      "slug": "pirangut",
+      "region": "Western Ghats peri-urban edge",
+      "name": "Pirangut (Mulshi, west Pune fringe)",
+      "intended": "hillside peri-urban edge",
+      "lat": 18.511,
+      "lon": 73.6815,
+      "radius_m": 400,
+      "verified": true,
+      "land_type": "Hillside peri-urban housing and residential layouts between steep Western Ghats scrub and grassland slopes and valley fields. Trap seen: bare basalt slopes and dry grass next to dense roofs.",
+      "expect_gate": "warning",
+      "expect_warning_contains": "built-up",
+      "expect_plants": [
+        "Neem",
+        "Babul"
+      ],
+      "expect_ruled_out": [
+        "Deodar"
+      ],
+      "expect_not_strong": [],
+      "status": "accepted",
+      "notes": "Round 3 (v2.1.0). On 2026-10-25 the user said he checked this point on the Google Maps satellite view himself and gave the point and what he sees (land_type); the candidates came from Gemini. Expectations drafted by Claude before any run from the plant limits in plants.csv and general knowledge; a plant is listed only if its verdict should be the same across the whole plausible range of climate and altitude. Gate expectation (user choice A, 2026-10-25): villages none; edges and towns warning containing built-up. Not accepted line by line yet: the user accepts or changes them before the commit. Rainfall here is uncertain (it rises quickly towards the ghats), so only plants with wide rain ranges are listed. Run 2026-10-26 (user's own run): outlines 20.5%. Matched all expectations."
+    },
+    {
+      "slug": "sandila",
+      "region": "Gangetic plain small town",
+      "name": "Sandila (Hardoi, Uttar Pradesh)",
+      "intended": "small plains town",
+      "lat": 27.0725,
+      "lon": 80.518,
+      "radius_m": 400,
+      "verified": true,
+      "land_type": "Dense low-rise brick residential neighbourhood in a small Gangetic town, bordered by mango orchards and fields. Trap seen: town ponds (talabs) and orchard canopy next to tightly packed brick roofs.",
+      "expect_gate": "warning",
+      "expect_warning_contains": "built-up",
+      "expect_plants": [
+        "Sissoo / Shisham",
+        "Mango"
+      ],
+      "expect_ruled_out": [
+        "Deodar",
+        "Chir pine",
+        "Bamboo (male bamboo)"
+      ],
+      "expect_not_strong": [],
+      "status": "accepted",
+      "notes": "Round 3 (v2.1.0). On 2026-10-25 the user said he checked this point on the Google Maps satellite view himself and gave the point and what he sees (land_type); the candidates came from Gemini. Expectations drafted by Claude before any run from the plant limits in plants.csv and general knowledge; a plant is listed only if its verdict should be the same across the whole plausible range of climate and altitude. Gate expectation (user choice A, 2026-10-25): villages none; edges and towns warning containing built-up. Not accepted line by line yet: the user accepts or changes them before the commit. Bamboo is ruled out by its 1200 mm floor (the district is near 1000 mm); Sal is left out because the rain is close to its 1000 mm floor. Run 2026-10-26 (user's own run): outlines 45.8%. Matched all expectations."
+    },
+    {
+      "slug": "kalimpong",
+      "region": "Eastern Himalaya hill town",
+      "name": "Kalimpong",
+      "intended": "wet hill town on a ridge (Darjeeling-type)",
+      "lat": 27.068,
+      "lon": 88.472,
+      "radius_m": 400,
+      "verified": true,
+      "land_type": "Steep wet-hill town with terraced houses along ridges, surrounded by dense mountain trees and shaded slopes. Traps seen: topographic shadows and bright tin or sheet roofs (the Darjeeling false-water and shadow case) next to dense tree cover.",
+      "expect_gate": "warning",
+      "expect_warning_contains": "built-up",
+      "expect_plants": [],
+      "expect_ruled_out": [
+        "Khejri"
+      ],
+      "expect_not_strong": [],
+      "status": "accepted",
+      "notes": "Round 3 (v2.1.0). On 2026-10-25 the user said he checked this point on the Google Maps satellite view himself and gave the point and what he sees (land_type); the candidates came from Gemini. Expectations drafted by Claude before any run from the plant limits in plants.csv and general knowledge; a plant is listed only if its verdict should be the same across the whole plausible range of climate and altitude. Gate expectation (user choice A, 2026-10-25): villages none; edges and towns warning containing built-up. Not accepted line by line yet: the user accepts or changes them before the commit. Judgement call and the point of this site: Darjeeling was BLOCKED because land cover read water; a person would want a warning, not a block. Plant lists are short because rain here may be above several plants' ceilings and the altitude is near the edge of some ranges. Run 2026-10-26 (user's own run): outlines 29.6%. MISMATCH on the old gate: the gate warned, but for the cropland swing rule (terraces), with no built-up warning (bare/built 34%, water 0%). The v2.1.0 outline warning (29.6% >= 18.5%) should fix it: test_regions on the user's fixture showed 'pending (would match)' on 2026-10-26, so it is accepted."
     }
   ]
 }

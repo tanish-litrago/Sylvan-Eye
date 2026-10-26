@@ -64,6 +64,9 @@ CACHE_LOG = []                     # filled by run_live: what was a hit or a mis
 GATE_WATER_BLOCK = 0.5      # share water/wet surface at or above this -> do not recommend
 GATE_WATER_WARN = 0.2       # share at or above this (but below the block level) -> warn
 GATE_BUILT_WARN = 0.4       # share bare-or-built at or above this -> warn
+GATE_OUTLINE_WARN = 0.185   # share of the circle covered by building outlines at or above this -> warn (v2.1.0).
+                            # Midpoint of the gap on 35 places: large villages up to 16.5% (Kakdwip), the lowest
+                            # peri-urban edge at 20.5% (Pirangut): see HANDOFF P7-15. It only warns, never blocks.
 GATE_SWING_WARN = 0.4       # big seasonal NDVI swing share, in at least 2 years ...
 GATE_DRY_FLOOR_MAX = 0.24   # ... with a dry-season NDVI floor below this -> looks like cropland
                             # (0.2 until 2026-10-14; Solapur farmland sits at 0.204. 0.24 is the midpoint of the
@@ -102,6 +105,18 @@ def check_eligibility(terrain: dict):
             f"WARNING: {cover['bare_or_built']:.0%} is bare or built-up and the satellite "
             f"signal cannot tell these apart. If it is built-up, nothing can be planted."
         )
+    fp = terrain.get("footprints") or {}
+    outline = fp.get("share") if fp.get("coverage") == "ok" else None
+    if outline is not None and outline >= GATE_OUTLINE_WARN:
+        if blocked:
+            messages.append(
+                f"NOTE: mapped building outlines cover {outline:.0%} of the area, so part of the water "
+                f"reading may be shaded slopes or bright roofs. The block stays.")
+        elif cover["bare_or_built"] < GATE_BUILT_WARN:      # the land-cover warning above already says it
+            messages.append(
+                f"WARNING: mapped building outlines cover {outline:.0%} of the area, so much of it may be "
+                f"built-up. The satellite land cover can miss roofs under trees and on slopes. "
+                f"If it is built-up, nothing can be planted.")
     by_year = season.get("big_swing_by_year") or {}
     if by_year:
         # A swing must RECUR (in at least two years, or the only year available): a spike in one

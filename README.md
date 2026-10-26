@@ -4,12 +4,12 @@ Give it a location, and it tells you which trees could be planted there, why, an
 
 **Rules decide; the language model only explains, and it is off by default.** Every verdict comes from fixed rules over measured data and a sourced plant table. An optional local language model can rewrite the explanation in prose, but its text is checked claim by claim against the facts and discarded if it fails.
 
-> **Status:** v2.0.0 is a working, documented prototype. It is **not** validated for real planting decisions. Always confirm with a local soil test and local forestry advice. See [Known limits](#known-limits).
+> **Status:** v2.1.0 is a working, documented prototype. It is **not** validated for real planting decisions. Always confirm with a local soil test and local forestry advice. See [Known limits](#known-limits).
 
 ## What it does
 
-1. Measures the place (latitude, longitude and a radius, default 400 m): terrain and vegetation from Sentinel-2 imagery over three years (Google Earth Engine), elevation from SRTM, soil from SoilGrids 2.0 / OpenLandMap, and climate from the Open-Meteo historical archive. Measurements are cached. It also measures how much of the circle building outlines cover, as an extra number that does not change the answer (see Known limits).
-2. Checks eligibility: blocks open water; warns about built-up or bare ground, active cropland, and land that never greens up.
+1. Measures the place (latitude, longitude and a radius, default 400 m): terrain and vegetation from Sentinel-2 imagery over three years (Google Earth Engine), elevation from SRTM, soil from SoilGrids 2.0 / OpenLandMap, and climate from the Open-Meteo historical archive. Measurements are cached. It also measures how much of the circle building outlines cover; at 18.5% or more the gate adds a warning (see Known limits).
+2. Checks eligibility: blocks open water; warns about built-up or bare ground (from land cover, or from building outlines at 18.5% or more), active cropland, and land that never greens up.
 3. Matches 32 plant species (limits from FAO ECOCROP and World Agroforestry sheets, plus a few Indian government and flora sources, each cited in the plant's row) on rainfall, temperature, pH, soil texture and altitude. A plant outside a stated absolute limit is ruled out with the reason. The rest are grouped as **Strong fit**, **Likely, not fully verified** or **Caution**. They are grouped, not ranked, because the data cannot put them in order.
 4. Shows the whole picture: warnings first, the conditions, per-check chips for every plant, the ruled-out list with reasons, and the limits of the data.
 
@@ -85,7 +85,7 @@ python -m phases.phase5_explainer LAT LON --llm    # explanation rewritten by th
 
 ## Optional: the local language model
 
-Install Ollama, run `ollama pull gemma4:e4b`, and keep it running. The page then shows a **Rewrite with local LLM** button. Only `gemma4:e4b` is supported: `qwen2.5:7b-instruct` was rejected by the claim guard. If the model's answer fails the checks you get the fixed-rules text again, with the reasons. A blocked location never uses the model.
+Install Ollama, run `ollama pull gemma4:e4b`, and keep it running. The page then shows a **Rewrite with local LLM** button. Only `gemma4:e4b` is supported: `qwen2.5:7b-instruct` was rejected by the claim guard. If the model's answer fails the checks you get the fixed-rules text again, with the reasons. A blocked location never uses the model. On the 32 saved places that reach the model, one run of `python -m scripts.guard_stats` showed the guard accepting 29 answers on the first try and 1 after the retry; 2 fell back to the fixed text.
 
 ## Settings (environment variables)
 
@@ -131,7 +131,7 @@ The rainfall check against published normals (offline) is `python -m scripts.che
 | `app.py`, `jobs.py`, `jobstore.py`, `storage.py`, `tiers.py`, `static/` | The web app: routes, background jobs, where their records are kept (memory or Redis), the measurement cache (SQLite or Postgres), Strong / Likely / Caution grouping, the page |
 | `phases/` | `phase1_data_pipeline`, `phase2_terrain_extraction`, `phase2_footprints` (building outlines), `phase4_inputs` (soil, terrain, climate), `phase4_matcher` (eligibility gate and plant matcher), `phase5_explainer` (fact sheet, fixed-rules text, optional model rewrite, claim guard) |
 | `data/` | `plants.csv`, `rainfall_reference.csv`, `phase7_sites.json`, `phase7_report.md`, `fixtures/` (saved measurements of the test sites) |
-| `scripts/` | `validate_plants`, `export_fixtures`, `run_regions`, `check_rainfall`, and `fixtures` (the loader for `data/fixtures`); run as `python -m scripts.<name>` |
+| `scripts/` | `validate_plants`, `export_fixtures`, `run_regions`, `check_rainfall`, `guard_stats`, and `fixtures` (the loader for `data/fixtures`); run as `python -m scripts.<name>` |
 | `tests/` | all tests; `python -m tests` runs them |
 | `requirements/` | `requirements.txt`, `requirements-postgres.txt`, `requirements-redis.txt` |
 | `docker/` | `Dockerfile`, `docker-compose.yml`, `.env.example` (copy to `docker/.env`) |
@@ -141,9 +141,9 @@ The rainfall check against published normals (offline) is `python -m scripts.che
 
 ## Known limits
 
-- The built-up warning relies on satellite land cover. At Kochi it read 37% as built, just under the 40% line, and at Darjeeling it read the town as 61% water and blocked the place for that reason. Barren natural land also gets the bare-or-built-up warning.
-- The building-outline share is an extra number: the gate, the plant matching and the explanation do not use it. The outlines are a May 2023 snapshot, so newer buildings are missing, and some small crowded roofs have no outline, so the share is a floor. If no outline exists within 5 km of the point, the result says there is no footprint data instead of 0%. On 27 saved places the share was 35.6% to 46.6% in the four dense town cores and 5.6% or less everywhere else. A warning based on it is a candidate for the next version and has not been built.
-- Gate thresholds rest on few sites. The cropland rule warned on natural grassland and scrub at Cherrapunji and Dive Ghat, and missed farmland at Anantapur by 0.004 of dry-season greenness. It does not see orchards or tea (Malihabad, Dibrugarh), and tidal mangrove forest (Sundarbans) gets no warning. The rainfall reading at Leh was checked against published normals and is far too high; the page says so at 2,000 m and above. Solapur is inconclusive, and the 12 places added in v2.0.0 have no rainfall reference yet.
+- The built-up warning relies on satellite land cover. At Kochi it read 37% as built, just under the 40% line, and at Darjeeling it read the town as 61% water and blocked the place for that reason. Barren natural land also gets the bare-or-built-up warning. Since v2.1.0 the outline warning covers Kochi (43.8% outlines); Darjeeling is still blocked, now with a note that the water reading may be shade or roofs.
+- The building-outline share feeds one thing: a warning at 18.5% or more (it never blocks, and it is skipped when the land-cover warning already fired). Plant matching does not use it. The line sits between the largest village (16.5%, Kakdwip) and the lowest peri-urban edge (20.5%, Pirangut) on 35 saved places, so it rests on few places. Houses under trees stay below it (Shimla, 5.6%). The outlines are a May 2023 snapshot, so newer buildings are missing, and some small crowded roofs have no outline, so the share is a floor. If no outline exists within 5 km of the point, the result says there is no footprint data instead of 0%.
+- Gate thresholds rest on few sites. The cropland rule warned on natural grassland and scrub at Cherrapunji and Dive Ghat, and missed farmland at Anantapur by 0.004 of dry-season greenness. It does not see orchards or tea (Malihabad, Dibrugarh), and tidal mangrove forest (Sundarbans) gets no warning. The rainfall reading at Leh was checked against published normals and is far too high; the page says so at 2,000 m and above. Solapur is inconclusive. Cherrapunji (0.44 of the published figure) and Pampore (2.1 times) are far off too, because a weather grid cannot hold a one-valley rainfall peak. Dive Ghat and five places added in v2.1.0 have no rainfall reference yet.
 - Every plant has a rainfall minimum and an altitude limit. Each is the end of a published range for where the tree grows, not a tested limit, so an irrigated planting outside the range may still work. Babul's altitude comes from a sheet for a different subspecies. Chir pine is a Himalayan species and the matcher does not check its range. 16 plants have no absolute rainfall maximum, 14 no absolute temperature limits and 17 no absolute pH limits.
 - One analysis runs at a time. Job records live in memory, or in Redis with `SYLVAN_JOBS=redis` (Docker); either way the work runs in threads inside the app, so a restart cuts off a running job and it is reported as failed. Redis holds job records only (one hour, nothing on disk, no password, not reachable from outside Docker); the optional model's fact sheet stays in the app's memory, so after a restart the rewrite button on an old analysis asks you to run the place again.
 

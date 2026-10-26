@@ -1,5 +1,39 @@
 # Changelog
 
+## v2.1.0 - 2026-10-26
+
+A building-outline warning for the gate, rainfall references for more places, a measurement of the claim guard, and seven more test places. The rules still decide and the language model only explains; the claim guard, the block rule and the plant matching are unchanged.
+
+### Added
+
+- Building-outline warning (`GATE_OUTLINE_WARN = 0.185` in `phases/phase4_matcher.py`). At 18.5% outline coverage or more the gate warns that the place may be built-up. It only warns. It is skipped when the land-cover built-up warning already fired, and on a place blocked as water it adds a note instead and the block stays.
+- Third Phase 7 round: 7 places between dense towns and open land (3 large villages, 2 peri-urban edges, 2 small towns: Kuderu, Bellare, Kakdwip, Sohana in Mohali, Pirangut, Sandila, Kalimpong). The user checked each point on the satellite view; the expectations were written before the run.
+- `scripts/guard_stats.py` and `tests/test_guard_stats.py`: run the local model on every saved place and count what the claim guard did (accepted first try, accepted after the retry, fell back to the fixed text). The test uses a scripted explainer, so it needs no Ollama.
+- Rainfall references in `data/rainfall_reference.csv` for Cherrapunji, Ludhiana, Anantapur (also used for Kuderu), Hisar, Malihabad, Dibrugarh, Pampore, Kochi, Darjeeling, Kolkata and Sundarbans (also used for Kakdwip). Each value comes from a page that was opened.
+
+### Changed
+
+- `tests/test_rainfall_check.py`: Cherrapunji (0.44 of the reference, FAR LOW) and Pampore (2.11, FAR OFF) are named known cases next to Leh. `NOT_YET_REFERENCED` now holds Dive Ghat and five round-3 places.
+- The outline warning text includes the share, so the fact sheet and the fixed-rules text now carry that number. v2.0.0 kept it out of both; the word "footprint" still does not appear in them.
+- Kochi's documented miss is fixed. Kalimpong's mismatch on the old gate (it warned for the cropland rule only) is fixed the same way. Both are `accepted` in `data/phase7_sites.json`.
+
+### Findings (details in HANDOFF section 13)
+
+- Outline share: 6.8% to 16.5% at the three villages, 20.5% to 45.8% at the edges and towns. The gap holds on all 35 places.
+- Cropland rule: of the signals in the saved data only slope separates cropland from the two wrongly warned places (cropland 2.0 to 3.2 degrees, Cherrapunji 5.8, Dive Ghat 17.9). The evidence is two places without cropland and no labelled cropland on a slope, so the rule is unchanged.
+- Claim guard on `gemma4:e4b`, one run on 35 places: 3 blocked, 29 accepted first try, 1 after the retry, 2 fell back to the fixed text. The five rejected attempts were plants left out (3), cut-off answers (2) and a wrong "no data" claim (1). No change made.
+- Cherrapunji and Pampore read far from published normals; Dive Ghat has no usable reference page.
+
+### Tested
+
+- `python -m tests`: 17 of 17 test files, run by the user on 2026-10-26.
+- Run by the user: the 7 new places live with Earth Engine, the guard measurement with Ollama, and the Docker stack rebuilt with `--build` (app, db and redis healthy, the map working at `127.0.0.1:8000`).
+- Claude's sandbox: unit tests only. It cannot run Docker, Earth Engine, Ollama or a browser.
+
+### Upgrading
+
+- `docker compose up -d --build` from `docker/`. Cached measurements stay valid; the warning is computed from the saved outline share, so nothing is measured again.
+
 ## v2.0.0 - 2026-10-24
 
 Better signals, wider testing and a new page. The rules still decide and the language model only explains; the claim guard and the gate are unchanged.
