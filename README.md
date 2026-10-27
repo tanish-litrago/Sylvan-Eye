@@ -6,6 +6,8 @@ Give it a location, and it tells you which trees could be planted there, why, an
 
 > **Status:** v2.1.0 is a working, documented prototype. It is **not** validated for real planting decisions. Always confirm with a local soil test and local forestry advice. See [Known limits](#known-limits).
 
+**What it honestly gets wrong:** the rainfall source reads Leh about 9.6 times too high and Cherrapunji at 0.44 of the published figure, because a weather grid smooths mountain places. The gate misses houses hidden under trees (Shimla) and cannot yet tell cropland from seasonal grassland.
+
 ## What it does
 
 1. Measures the place (latitude, longitude and a radius, default 400 m): terrain and vegetation from Sentinel-2 imagery over three years (Google Earth Engine), elevation from SRTM, soil from SoilGrids 2.0 / OpenLandMap, and climate from the Open-Meteo historical archive. Measurements are cached. It also measures how much of the circle building outlines cover; at 18.5% or more the gate adds a warning (see Known limits).
@@ -138,6 +140,14 @@ The rainfall check against published normals (offline) is `python -m scripts.che
 | `.dockerignore` | stays in the project folder: it applies to the Docker build context |
 | `HANDOFF.md` | Full state, decisions, findings and next steps |
 | `CHANGELOG.md` | Release notes |
+
+## What I built and what AI helped with
+
+I set the goal, chose between the options at every rule decision, and ran every live check on my own machine: the Earth Engine analyses, the Docker stack and the local model measurement. Expectations for the test places were written before each run; HANDOFF records the one time a commit came after the run.
+
+Claude, an AI assistant, wrote the code, the tests and the documents (README, CHANGELOG, HANDOFF) under my direction. Plant rows and rainfall references carry a source page. Values suggested by a second AI (Gemini) were used only after being checked against that page.
+
+Accuracy was judged by me on 35 saved places, not by an outside expert, which is why the project is not called validated.
 
 ## Known limits
 
