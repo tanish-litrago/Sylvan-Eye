@@ -16,7 +16,7 @@ import sys
 
 import ee
 
-from phases.phase2_terrain_extraction import EE_PROJECT
+from phases.phase1_data_pipeline import init_earth_engine
 
 # Cache version of get_footprints()'s output. Bump it whenever the returned data changes.
 CACHE_VERSION = 1
@@ -49,7 +49,7 @@ def summarize(raw):
 def get_footprints(lat: float, lon: float, radius_m: int = 400):
     """Share of the circle (radius_m metres) covered by building footprints. Polygons are cut at
     the circle edge. Overlapping polygons are not merged, so the share can be slightly high."""
-    ee.Initialize(project=EE_PROJECT)
+    init_earth_engine()
     point = ee.Geometry.Point([lon, lat])
     region = point.buffer(radius_m)
     buildings = ee.FeatureCollection(BUILDINGS)

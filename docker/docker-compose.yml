@@ -21,6 +21,8 @@ services:
     environment:
       # Ollama runs on the Windows machine (GPU); Docker Desktop provides host.docker.internal.
       SYLVAN_OLLAMA_URL: ${SYLVAN_OLLAMA_URL:-http://host.docker.internal:11434/api/chat}
+      # The Google Cloud project registered for Earth Engine (set it in .env or the shell).
+      SYLVAN_EE_PROJECT: ${SYLVAN_EE_PROJECT:-sylvan-eye}
       SYLVAN_STORE: postgres
       # The password comes from .env (letters and digits only, so the URL stays valid).
       SYLVAN_DB_URL: postgresql://sylvan:${POSTGRES_PASSWORD}@db:5432/sylvan

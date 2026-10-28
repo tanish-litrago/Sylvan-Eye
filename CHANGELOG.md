@@ -1,5 +1,32 @@
 # Changelog
 
+## v2.1.1 - 2026-10-27
+
+Small hardening after an outside review of the project (a simulated screening panel). No change to the gate, the plant matching or the claim guard.
+
+### Added
+
+- `SYLVAN_EE_PROJECT`: the Earth Engine project is read from the environment (default `sylvan-eye`, the author's project) instead of being edited in two source files. It reaches the Docker container through `docker/docker-compose.yml` and `docker/.env.example`.
+- One start-up helper, `init_earth_engine()` in `phases/phase1_data_pipeline.py`, used by all four Earth Engine calls. If Earth Engine cannot start it raises a message that names the project and says to set `SYLVAN_EE_PROJECT` and run `earthengine authenticate`.
+- India refusal: `POST /analyze` answers 422 "This point is outside India" for points outside a coarse rectangle (latitude 6.0 to 37.5, longitude 68.0 to 98.0), demo mode included. The rectangle is not a border, so Kathmandu and similar places inside it still run; a test records this limit.
+- GitHub Actions workflow `.github/workflows/tests.yml`: runs `python -m tests` on Linux with Python 3.12 on every push to `main` and on pull requests.
+- `SYLVAN_LLM=off`: the server lists no language models, so the page hides the "Rewrite with local LLM" control, and `POST /jobs/{id}/explain` answers 409 "switched off". Meant for a host without Ollama; unset, nothing changes.
+- Tests: `tests/test_ee_settings.py` (environment variable, start-up error message, with a fake `ee`), and three tests in `tests/test_app.py` for the India refusal.
+
+### Changed
+
+- README: setup uses the environment variable, a settings row, a CI note, an India limit, a short "what it honestly gets wrong" line and a section on what was built by me and what by AI.
+
+### Not done
+
+- Requirements are still lower-bounded, not pinned.
+- No rainfall-confidence refusal, no held-out test set judged by someone else, no hosted or demo-only mode.
+- The CI workflow has not been run yet; its first run may need a fix.
+
+### Tested
+
+- Claude's sandbox only: unit tests (Python 3.12.3, Linux). Run `python -m tests` on your machine for the real result.
+
 ## v2.1.0 - 2026-10-26
 
 A building-outline warning for the gate, rainfall references for more places, a measurement of the claim guard, and seven more test places. The rules still decide and the language model only explains; the claim guard, the block rule and the plant matching are unchanged.

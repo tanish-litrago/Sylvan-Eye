@@ -109,6 +109,41 @@ def test_analyze_rejects_bad_input():
     assert client.post("/analyze", json={"lon": 82}).status_code == 422
 
 
+def test_points_outside_india_are_refused_with_a_message():
+    for lat, lon in [(52.52, 13.405), (0.0, -160.0), (-33.9, 151.2), (60.0, 82.0)]:   # Berlin, Pacific, Sydney, Siberia
+        r = client.post("/analyze", json={"lat": lat, "lon": lon})
+        assert r.status_code == 422 and "outside India" in r.json()["detail"], (lat, lon)
+    r = client.post("/analyze", json={"lat": 52.52, "lon": 13.405, "demo": True})   # the demo does not get around it
+    assert r.status_code == 422
+
+
+def test_the_india_box_keeps_the_far_corners_and_islands():
+    from app import inside_india
+    for name, lat, lon in [("Leh", 34.15, 77.58), ("Kanyakumari", 8.09, 77.54), ("Port Blair", 11.62, 92.73),
+                           ("Kavaratti", 10.57, 72.64), ("Tawang", 27.59, 91.86), ("Dhordo, Kutch", 23.85, 69.7),
+                           ("Bilaspur", 22.08, 82.14)]:
+        assert inside_india(lat, lon), name
+
+
+def test_known_limit_the_box_is_coarse_and_lets_some_neighbours_through():
+    from app import inside_india
+    assert inside_india(27.7, 85.3)      # Kathmandu is inside the rectangle; a country border check is not built
+
+
+def test_llm_switched_off_lists_no_models_and_refuses_explain():
+    import app as app_module
+    assert app_module.llm_models_for("off") == [] and app_module.llm_models_for(" OFF ") == []
+    assert app_module.llm_models_for(None) == app_module.llm_models_for("on") == [app_module.OLLAMA_MODEL]
+    old = app_module.LLM_MODELS
+    app_module.LLM_MODELS = []
+    try:
+        assert client.get("/llm/models").json()["models"] == []
+        r = client.post("/jobs/anything/explain", json={})
+        assert r.status_code == 409 and "switched off" in r.json()["detail"]
+    finally:
+        app_module.LLM_MODELS = old
+
+
 def test_unknown_job_is_404():
     assert client.get("/jobs/does-not-exist").status_code == 404
 
@@ -185,6 +220,10 @@ if __name__ == "__main__":
     test_unknown_route_is_404()
     test_analyze_rejects_bad_input()
     test_unknown_job_is_404()
+    test_points_outside_india_are_refused_with_a_message()
+    test_the_india_box_keeps_the_far_corners_and_islands()
+    test_known_limit_the_box_is_coarse_and_lets_some_neighbours_through()
+    test_llm_switched_off_lists_no_models_and_refuses_explain()
     test_demo_analysis_end_to_end()
     test_llm_models_and_explain_routes()
     print("all app tests passed")

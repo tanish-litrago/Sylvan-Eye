@@ -14,7 +14,7 @@ Needs the same venv and Earth Engine login as Phase 1.
 
 import ee
 
-EE_PROJECT = "sylvan-eye"
+from phases.phase1_data_pipeline import init_earth_engine
 
 # Cache version of get_terrain_data()'s output. Bump it whenever the returned data changes,
 # so cached results from older code are never reused. 3 = adds the multi-year swing.
@@ -83,7 +83,7 @@ def get_terrain_data(
     Uses a MEDIAN composite of all low-cloud Sentinel-2 images in the date range
     instead of one image, so a single hazy or odd-season scene doesn't skew results.
     """
-    ee.Initialize(project=EE_PROJECT)
+    init_earth_engine()
 
     point = ee.Geometry.Point([lon, lat])
     region = point.buffer(radius_m)

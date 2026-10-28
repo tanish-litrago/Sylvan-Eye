@@ -13,6 +13,8 @@ Before running:
        (this opens a browser, logs you in, and caches credentials locally)
 """
 
+import os
+
 import requests
 
 # ---------------------------------------------------------------------------
@@ -22,11 +24,26 @@ TEST_LAT = 22.0797
 TEST_LON = 82.1409
 LOCATION_NAME = "Bilaspur, Chhattisgarh"
 
-# Your Google Cloud project registered for Earth Engine
-EE_PROJECT = "sylvan-eye"
+# The Google Cloud project registered for Earth Engine. Set SYLVAN_EE_PROJECT to your own;
+# the default is the author's project and will not work for anyone else.
+EE_PROJECT = os.environ.get("SYLVAN_EE_PROJECT", "sylvan-eye")
 
 # Cache version of get_soil_data()'s output. Bump it whenever the returned data changes.
 CACHE_VERSION = 1
+
+
+def init_earth_engine():
+    """Start Earth Engine with the configured project, or say plainly how to fix it."""
+    import ee
+
+    try:
+        ee.Initialize(project=EE_PROJECT)
+    except Exception as e:
+        raise RuntimeError(
+            f"Earth Engine could not start with project '{EE_PROJECT}' ({type(e).__name__}). "
+            "Set SYLVAN_EE_PROJECT to a Google Cloud project registered for Earth Engine, "
+            "and run `earthengine authenticate`."
+        ) from e
 
 
 # ---------------------------------------------------------------------------
@@ -40,7 +57,7 @@ def get_sentinel2_data(lat: float, lon: float):
     """
     import ee
 
-    ee.Initialize(project=EE_PROJECT)  # credentials cached by `earthengine authenticate`
+    init_earth_engine()  # credentials cached by `earthengine authenticate`
 
     point = ee.Geometry.Point([lon, lat])
 
@@ -127,7 +144,7 @@ def get_soil_data(lat: float, lon: float):
     """Surface-layer (0 cm) soil properties: pH, organic carbon, clay, sand."""
     import ee
 
-    ee.Initialize(project=EE_PROJECT)
+    init_earth_engine()
     point = ee.Geometry.Point([lon, lat])
 
     tried = []

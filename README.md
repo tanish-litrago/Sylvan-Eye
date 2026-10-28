@@ -4,7 +4,7 @@ Give it a location, and it tells you which trees could be planted there, why, an
 
 **Rules decide; the language model only explains, and it is off by default.** Every verdict comes from fixed rules over measured data and a sourced plant table. An optional local language model can rewrite the explanation in prose, but its text is checked claim by claim against the facts and discarded if it fails.
 
-> **Status:** v2.1.0 is a working, documented prototype. It is **not** validated for real planting decisions. Always confirm with a local soil test and local forestry advice. See [Known limits](#known-limits).
+> **Status:** v2.1.1 is a working, documented prototype. It is **not** validated for real planting decisions. Always confirm with a local soil test and local forestry advice. See [Known limits](#known-limits).
 
 **What it honestly gets wrong:** the rainfall source reads Leh about 9.6 times too high and Cherrapunji at 0.44 of the published figure, because a weather grid smooths mountain places. The gate misses houses hidden under trees (Shimla) and cannot yet tell cropland from seasonal grassland.
 
@@ -33,7 +33,7 @@ pip install -r requirements/requirements.txt
 earthengine authenticate
 ```
 
-The Earth Engine project name `sylvan-eye` is set as `EE_PROJECT` in `phases/phase1_data_pipeline.py` and `phases/phase2_terrain_extraction.py`. Change both to your own Google Cloud project that has Earth Engine enabled.
+Set the Earth Engine project to your own Google Cloud project that has Earth Engine enabled: `$env:SYLVAN_EE_PROJECT = "your-project"` (macOS/Linux: `export SYLVAN_EE_PROJECT=your-project`). If it is unset, the author's project `sylvan-eye` is used and will not work for you. A failed start prints a message that says so. In Docker, put `SYLVAN_EE_PROJECT=your-project` in `docker/.env`.
 
 ## Run the web page
 
@@ -93,6 +93,8 @@ Install Ollama, run `ollama pull gemma4:e4b`, and keep it running. The page then
 
 | Variable | Meaning | Default |
 |---|---|---|
+| `SYLVAN_EE_PROJECT` | Your Google Cloud project registered for Earth Engine | `sylvan-eye` (the author's; set your own) |
+| `SYLVAN_LLM` | `off` hides the language-model control and refuses rewrite requests (for a host without Ollama) | on |
 | `SYLVAN_STORE` | `sqlite` or `postgres` (cache backend) | `sqlite` |
 | `SYLVAN_SQLITE_PATH` | SQLite cache file | `sylvan_cache.db` in the project folder |
 | `SYLVAN_DB_URL` | Postgres connection string (needs `pip install -r requirements/requirements-postgres.txt`) | none |
@@ -119,6 +121,8 @@ python -m tests                  # every test file, one line each; skipped parts
 python -m tests jobs storage     # only some files
 python -m tests.test_jobs        # one file, with its full output
 ```
+
+GitHub Actions runs `python -m tests` on every push to `main` (Linux, Python 3.12, no Earth Engine login, Ollama, Postgres or Redis).
 
 `test_fixtures` and `test_regions` need `data/fixtures/` (created by `python -m scripts.export_fixtures` for the six original test sites and `python -m scripts.run_regions` for the Phase 7 sites). `run_regions` runs the sites listed in `data/phase7_sites.json` and compares the result with expectations written *before* the run; it refuses a site until those are filled in. Open-Meteo's free service limits how many ten-year requests it answers: when many new places are measured in one go, add `--pause 120` to wait between them (a 429 answer stops the run and names the limit that was hit; places already measured are cached). `test_app` needs `httpx`.
 
@@ -151,6 +155,7 @@ Accuracy was judged by me on 35 saved places, not by an outside expert, which is
 
 ## Known limits
 
+- Points outside a coarse rectangle around India are refused (Berlin, the Pacific). The rectangle is not a border, so places in neighbouring countries inside it, such as Kathmandu, still run.
 - The built-up warning relies on satellite land cover. At Kochi it read 37% as built, just under the 40% line, and at Darjeeling it read the town as 61% water and blocked the place for that reason. Barren natural land also gets the bare-or-built-up warning. Since v2.1.0 the outline warning covers Kochi (43.8% outlines); Darjeeling is still blocked, now with a note that the water reading may be shade or roofs.
 - The building-outline share feeds one thing: a warning at 18.5% or more (it never blocks, and it is skipped when the land-cover warning already fired). Plant matching does not use it. The line sits between the largest village (16.5%, Kakdwip) and the lowest peri-urban edge (20.5%, Pirangut) on 35 saved places, so it rests on few places. Houses under trees stay below it (Shimla, 5.6%). The outlines are a May 2023 snapshot, so newer buildings are missing, and some small crowded roofs have no outline, so the share is a floor. If no outline exists within 5 km of the point, the result says there is no footprint data instead of 0%.
 - Gate thresholds rest on few sites. The cropland rule warned on natural grassland and scrub at Cherrapunji and Dive Ghat, and missed farmland at Anantapur by 0.004 of dry-season greenness. It does not see orchards or tea (Malihabad, Dibrugarh), and tidal mangrove forest (Sundarbans) gets no warning. The rainfall reading at Leh was checked against published normals and is far too high; the page says so at 2,000 m and above. Solapur is inconclusive. Cherrapunji (0.44 of the published figure) and Pampore (2.1 times) are far off too, because a weather grid cannot hold a one-valley rainfall peak. Dive Ghat and five places added in v2.1.0 have no rainfall reference yet.

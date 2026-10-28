@@ -16,6 +16,7 @@ Run (from the project folder, venv active):
 then open http://127.0.0.1:8000
 """
 
+import os
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -33,7 +34,12 @@ from phases.phase5_explainer import OLLAMA_MODEL
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
 
-LLM_MODELS = [OLLAMA_MODEL]   # qwen2.5:7b-instruct was dropped (user decision, 2026-10-10): see HANDOFF section 8
+def llm_models_for(setting):
+    """SYLVAN_LLM=off lists no models, so the page hides the language-model control (for a host without Ollama)."""
+    return [] if str(setting or "").strip().lower() == "off" else [OLLAMA_MODEL]
+
+
+LLM_MODELS = llm_models_for(os.environ.get("SYLVAN_LLM"))   # qwen2.5:7b-instruct was dropped (user decision, 2026-10-10): see HANDOFF section 8
 MAX_RADIUS_M = 5000   # a sanity ceiling I chose, not a rule from the data: change it if you need to
 
 # The plant table (data/plants.csv) and the SQLite cache file (sylvan_cache.db, next to this file)
@@ -50,6 +56,17 @@ app = FastAPI(title="Sylvan Eye")
 def job_store_unavailable(request, exc):
     """The job store (Redis) cannot be used: say so plainly instead of a bare server error."""
     return JSONResponse(status_code=503, content={"detail": str(exc)})
+
+
+# A coarse box around India (Andaman, Nicobar and Lakshadweep included). It refuses Berlin or the
+# Pacific; parts of neighbouring countries inside the box still pass. Sylvan Eye's plant table,
+# soil and rainfall checks were built and tested on Indian places only.
+INDIA_LAT = (6.0, 37.5)
+INDIA_LON = (68.0, 98.0)
+
+
+def inside_india(lat, lon):
+    return INDIA_LAT[0] <= lat <= INDIA_LAT[1] and INDIA_LON[0] <= lon <= INDIA_LON[1]
 
 
 class AnalyzeRequest(BaseModel):
@@ -70,6 +87,10 @@ def health():
 @app.post("/analyze", status_code=202)
 def analyze(req: AnalyzeRequest):
     """Start a job and return its id. 202 means: accepted, not finished."""
+    if not inside_india(req.lat, req.lon):
+        raise HTTPException(status_code=422, detail=(
+            "This point is outside India. Sylvan Eye works for India only: its plant table, "
+            "soil and rainfall checks were built and tested on Indian places."))
     return {"job_id": jobs.start_job(req.model_dump())}
 
 
@@ -94,6 +115,8 @@ def llm_models():
 @app.post("/jobs/{job_id}/explain", status_code=202)
 def explain_job(job_id: str, req: ExplainRequest):
     """Start the optional language-model rewrite. Poll the returned id with GET /jobs/{id}."""
+    if not LLM_MODELS:
+        raise HTTPException(status_code=409, detail="The language model is switched off on this server.")
     if req.model not in LLM_MODELS:
         raise HTTPException(status_code=422, detail="unknown model")
     try:

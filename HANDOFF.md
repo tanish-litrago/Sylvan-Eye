@@ -2,7 +2,7 @@
 
 Purpose: a running record so any new session (or Claude instance) can pick up the project without re-asking. Update this file at the end of each phase. **Never put API keys or credentials in this file.**
 
-Last updated: v2.1.0, 2026-10-26 (building-outline warning in the gate, rainfall references, claim-guard measurement, third Phase 7 round; see section 13). Before that: v2.0.0, 2026-10-24 (building-outline signal, map input, new page, second Phase 7 round; see section 12). Before that: v1.2.0, 2026-10-20 (data you can trust: rainfall check 7e, high-mountain note, folder layout 7f, plant data 7g). Before that: v1.1.0, 2026-10-18 (Docker: app, Postgres cache, Redis job records; built and checked by the user, see sections 4 Docker row, 7d and 8). Before that: after Phase 7 (all seven phases done; open items are listed at the top of section 11; earlier: Phase 6 web UI, Phase 5 explainer, Phase 4 matcher)
+Last updated: v2.1.1, 2026-10-27 (EE project env var, India refusal, CI, see section 14). Before that: v2.1.0, 2026-10-26 (building-outline warning in the gate, rainfall references, claim-guard measurement, third Phase 7 round; see section 13). Before that: v2.0.0, 2026-10-24 (building-outline signal, map input, new page, second Phase 7 round; see section 12). Before that: v1.2.0, 2026-10-20 (data you can trust: rainfall check 7e, high-mountain note, folder layout 7f, plant data 7g). Before that: v1.1.0, 2026-10-18 (Docker: app, Postgres cache, Redis job records; built and checked by the user, see sections 4 Docker row, 7d and 8). Before that: after Phase 7 (all seven phases done; open items are listed at the top of section 11; earlier: Phase 6 web UI, Phase 5 explainer, Phase 4 matcher)
 
 ---
 
@@ -543,7 +543,7 @@ Slope is the only candidate and it does not meet the bar: there are two places w
 
 ### 13f. Docker (B)
 
-Seen by the user on 2026-10-26 after `docker compose up -d --build`: Docker version 29.8.1 (build 4a63305), Docker Compose v5.5.1, app, db and redis all "healthy", and the map working at `127.0.0.1:8000`. Still not seen: the page on a phone. Claude cannot run Docker.
+Seen by the user on 2026-10-26 after `docker compose up -d --build`: Docker version 29.8.1 (build 4a63305), Docker Compose v5.5.1, app, db and redis all "healthy", and the map working at `127.0.0.1:8000`. Still not seen: the footprint block inside Docker and the page on a phone. Claude cannot run Docker.
 
 ### 13g. Claim guard on `gemma4:e4b` (C), measured first
 
@@ -570,3 +570,36 @@ One run of `python -m scripts.guard_stats` by the user on the 35 saved places (s
 3. Look at the footprint block inside Docker and the page on a phone.
 4. Relax the water block for high-outline places only after a second false-water case turns up (D-21-4).
 5. Older open items in sections 11 and 12h still stand, except the three that this section closes (items 1 to 3 of 12h) and the map in Docker.
+
+## 14. v2.1.1 (2026-10-27)
+
+Small hardening after the BOARD.md review (a simulated six-person screening panel run by the user with a "shark" skill; its text is not in the repo). Its main criticisms were proof and presentation, not wrong results. The review is the user's file; only what Claude checked in the repo is recorded here.
+
+### 14a. What was done
+
+- **EE project**: `SYLVAN_EE_PROJECT` (default `sylvan-eye`) replaces the two hardcoded constants; `init_earth_engine()` in `phases/phase1_data_pipeline.py` is the only place that calls `ee.Initialize`, and `phase2_terrain_extraction.py` and `phase2_footprints.py` call it. `phase2_footprints.py` no longer imports `EE_PROJECT`. Docker passes the variable through.
+- **India refusal** in `app.py` (`INDIA_LAT = (6.0, 37.5)`, `INDIA_LON = (68.0, 98.0)`, `inside_india`): 422 with a plain message, also in demo mode. Coarse on purpose (no border data); Kathmandu passes (pinned by a test).
+- **`SYLVAN_LLM=off`** (`llm_models_for` in `app.py`): `/llm/models` returns an empty list so the page hides the control; the explain route answers 409. For a free host without Ollama; the LLM stays off by default either way.
+- **CI**: `.github/workflows/tests.yml`.
+- **Tests**: `test_ee_settings.py` (new) and three in `test_app.py`.
+- **Docs**: README (setup, settings row, CI note, India limit, honest "gets wrong" line, "what I built and what AI helped with"), CHANGELOG v2.1.1.
+
+### 14b. Checked against the repo
+
+The report said `EE_PROJECT` was hardcoded in two files (true) and that out-of-India points ran the full pipeline (true: only latitude and longitude ranges were checked). Both are fixed above. Not checked: its other claims (the user's guard hand-labelling, expert review, outside users).
+
+### 14c. Decisions
+
+- **Default kept as `sylvan-eye`** so the author's own runs keep working; a stranger gets the new error message, not a silent wrong project.
+- **A rectangle, not a border**: a border check needs a data file and a library; the rectangle fixes the Berlin and Pacific cases the panel named.
+- **CI on one Python version (3.12)**, the one Claude's sandbox ran. Requirements are still not pinned, so a new library release can turn CI red without a code change.
+- The cheap items first; the rest of the panel's list stays open (14d).
+
+### 14d. Still open from the panel's list
+
+1. Rainfall-confidence refusal or flag when the rainfall value is far from a reference or on a mountain cell; the corrected-rainfall rerun of the fixtures.
+2. A held-out set of new places with expectations from an outside person, committed before the run.
+3. A demo-only mode (saved places only, no Earth Engine) and then one hosted service; a screen recording at the top of the README.
+4. Outside testers; the guard false-accept rate (corrupted explanations hand-labelled).
+5. Pinned requirements; a first green CI run (check the Actions tab; paste the failing lines if it is red).
+6. The user rehearsing a 5-minute walkthrough of the gate, the claim guard and the job flow.
