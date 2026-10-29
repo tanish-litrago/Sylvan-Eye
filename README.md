@@ -2,6 +2,8 @@
 
 ![tests](https://github.com/tanish-litrago/Sylvan-Eye/actions/workflows/tests.yml/badge.svg)
 
+**Live demo:** https://sylvan-eye-requirements-sable.vercel.app (saved results for 35 places; the first visit can take about a minute while the free server wakes up).
+
 Give it a location, and it tells you which trees could be planted there, why, and what the data cannot tell you.
 
 **Rules decide; the language model only explains, and it is off by default.** Every verdict comes from fixed rules over measured data and a sourced plant table. An optional local language model can rewrite the explanation in prose, but its text is checked claim by claim against the facts and discarded if it fails.
