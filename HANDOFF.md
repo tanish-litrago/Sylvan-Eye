@@ -640,3 +640,14 @@ Section 14a says the India refusal applies in demo mode too. That was a bug: the
 1. Deploy as in the README section "Deploy a free demo"; paste the first failing build log lines if a step fails.
 2. A screen recording of the demo at the top of the README.
 3. The open items of 14d (rainfall-confidence flag, held-out set from an outside person, pinned requirements).
+
+### 15f. Deployed (2026-10-29, done by the user)
+
+- **Backend**: Render web service `sylvan-eye-api` (Docker, free plan, Oregon), created from `render.yaml` with a Blueprint named `sylvan-eye` on commit `022fd44` (v2.2.0). Address: `https://sylvan-eye-api.onrender.com`. Settings: `SYLVAN_MODE=demo` (from `render.yaml`) and `SYLVAN_CORS_ORIGINS=https://sylvan-eye-requirements-sable.vercel.app` (typed in the Render dashboard).
+- **Page**: Vercel project on the Hobby plan, preset "Other", environment variable `SYLVAN_API_BASE=https://sylvan-eye-api.onrender.com`. Address: `https://sylvan-eye-requirements-sable.vercel.app`.
+- **Checked by the user**: `/health` and `/config` on Render ("all running as expected"; the output was not pasted), and the Vercel page, which loads very fast and analyses saved places.
+- **Not checked or not recorded**: the real wake-up time of the sleeping free service; whether a push to `main` redeploys the Render service (the dashboard shows the Blueprint as "Manual sync"); the free-plan terms of either service; Vercel preview addresses (they are not in the CORS list and would be refused).
+- **If the page address changes** (a new Vercel domain), update `SYLVAN_CORS_ORIGINS` in Render first, or the page cannot reach the backend.
+- **Nothing secret is stored on either host.** The demo needs no Earth Engine credentials, no Postgres and no Ollama.
+
+Item 1 of 15e (deploy the demo) is done. Open items: a screen recording for the README, and the items of 14d.
