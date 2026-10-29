@@ -2,3 +2,5 @@ venv/
 .env
 __pycache__/
 *.db
+# Built by scripts/vercel_build.sh for Vercel
+public/

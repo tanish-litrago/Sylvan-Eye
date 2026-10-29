@@ -113,8 +113,13 @@ def test_points_outside_india_are_refused_with_a_message():
     for lat, lon in [(52.52, 13.405), (0.0, -160.0), (-33.9, 151.2), (60.0, 82.0)]:   # Berlin, Pacific, Sydney, Siberia
         r = client.post("/analyze", json={"lat": lat, "lon": lon})
         assert r.status_code == 422 and "outside India" in r.json()["detail"], (lat, lon)
-    r = client.post("/analyze", json={"lat": 52.52, "lon": 13.405, "demo": True})   # the demo does not get around it
-    assert r.status_code == 422
+
+
+def test_offline_demo_ignores_the_coordinates_so_they_are_not_refused():
+    # The page sends 0, 0 when the demo box is ticked and the fields are empty (v2.1.1 refused that: fixed in v2.2.0).
+    for lat, lon in [(0, 0), (52.52, 13.405)]:
+        r = client.post("/analyze", json={"lat": lat, "lon": lon, "radius_m": 400, "refresh": False, "demo": True})
+        assert r.status_code == 202, (lat, lon)
 
 
 def test_the_india_box_keeps_the_far_corners_and_islands():
@@ -221,6 +226,7 @@ if __name__ == "__main__":
     test_analyze_rejects_bad_input()
     test_unknown_job_is_404()
     test_points_outside_india_are_refused_with_a_message()
+    test_offline_demo_ignores_the_coordinates_so_they_are_not_refused()
     test_the_india_box_keeps_the_far_corners_and_islands()
     test_known_limit_the_box_is_coarse_and_lets_some_neighbours_through()
     test_llm_switched_off_lists_no_models_and_refuses_explain()

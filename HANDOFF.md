@@ -603,3 +603,40 @@ The report said `EE_PROJECT` was hardcoded in two files (true) and that out-of-I
 4. Outside testers; the guard false-accept rate (corrupted explanations hand-labelled).
 5. Pinned requirements; a first green CI run (check the Actions tab; paste the failing lines if it is red).
 6. The user rehearsing a 5-minute walkthrough of the gate, the claim guard and the job flow.
+
+## 15. v2.2.0 (2026-10-28)
+
+A free, safe public demo, and a correction to section 14. Claude wrote the code; the user chose the shape (demo-only mode and a Vercel page with a Render backend, decision D-22-1 below) and runs the deploy.
+
+### 15a. What was built
+
+- **Demo-only server**: `SYLVAN_MODE=demo` in `app.py`. `POST /analyze` takes a `place` slug (`AnalyzeRequest.place`), fills lat, lon and radius from the fixture and sets `fixture` in the job params; `jobs._analyze` then reads `scripts.fixtures.load_fixture` instead of calling `run_live`. The client cannot set `fixture` itself (it is not a request field). The language model is off in this mode. `GET /config` returns the mode and, in demo mode, `list_fixtures()`.
+- **CORS**: `SYLVAN_CORS_ORIGINS` (`cors_origins` in `app.py`), GET and POST, header Content-Type only, no credentials. Unset means no middleware.
+- **Page**: `static/config.js` (`window.SYLVAN_API_BASE`), `API` prefix on every call, `loadConfig` with a 3-minute wake-up retry, `applyConfig` for demo mode, the server's 422 sentence shown. `index.html` got ids for the parts demo mode hides.
+- **Deploy files**: `scripts/vercel_build.sh`, `vercel.json`, `render.yaml`; the Dockerfile follows `$PORT`.
+- **Tests**: `test_demo_mode.py`, `test_vercel_build.py`, one in `test_app.py`. 20 test files.
+
+### 15b. Decisions
+
+| # | Decision | Why |
+|---|---|---|
+| D-22-1 | Demo-only mode plus the Vercel page and Render backend split (the user's choice; Claude had recommended one Render service). | A faster first paint while the free backend wakes. |
+| D-22-2 | The demo shows all saved places, known-issue ones included (Darjeeling, Shimla, Leh). | It matches the honest stance; a curated list would look cherry-picked. |
+| D-22-3 | The page keeps trying for 3 minutes and says why, instead of failing. | A free Render service sleeps and wakes in about a minute. |
+| D-22-4 | The Vercel build writes `config.js` from `SYLVAN_API_BASE` and refuses a missing or unsafe value. | No source edit per deploy, and no way to inject script text through the setting. |
+
+### 15c. Correction to section 14
+
+Section 14a says the India refusal applies in demo mode too. That was a bug: the page sends latitude 0 and longitude 0 when "Offline demo values" is ticked and the fields are empty, so v2.1.1 answered "outside India". Fixed here; the refusal now applies to real analyses only. Found by Claude when reading the page code for this work, not by a user.
+
+### 15d. Checked, and not checked
+
+- Checked by Claude (sandbox): unit tests; a real uvicorn run in demo mode with a saved place, CORS preflight for the listed and an unlisted address, refusals; memory about 54 MB after three analyses; the page logic in jsdom with mocked server answers.
+- Not checked: a real browser, the Vercel build (`outputDirectory` and `buildCommand` follow Vercel's configuration docs), the Render blueprint (fields follow Render's docs and examples), the real wake-up time, and the free-plan terms. The user's first deploy is the real test.
+- The `outputDirectory: public` build writes `public/` (git-ignored).
+
+### 15e. Next steps
+
+1. Deploy as in the README section "Deploy a free demo"; paste the first failing build log lines if a step fails.
+2. A screen recording of the demo at the top of the README.
+3. The open items of 14d (rainfall-confidence flag, held-out set from an outside person, pinned requirements).

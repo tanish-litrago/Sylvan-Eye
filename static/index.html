@@ -26,7 +26,7 @@
       <p id="map-hint" class="hint">Click the map to place the point, or drag the marker. Then press Analyse.</p>
 
       <form id="analyze-form" novalidate>
-        <div class="field">
+        <div class="field" id="paste-field">
           <label for="paste">Paste a location from Google Maps</label>
           <input id="paste" type="text" placeholder="22.0797, 82.1409" autocomplete="off">
           <p id="paste-msg" class="hint" aria-live="polite"></p>
@@ -37,7 +37,7 @@
           <select id="site"></select>
         </div>
 
-        <div class="row">
+        <div class="row" id="coord-row">
           <div class="field">
             <label for="lat">Latitude</label>
             <input id="lat" type="text" inputmode="decimal" autocomplete="off">
@@ -48,7 +48,7 @@
           </div>
         </div>
 
-        <details>
+        <details id="advanced">
           <summary>Advanced</summary>
           <div class="field">
             <label for="radius">Radius around the point (metres)</label>
@@ -62,6 +62,7 @@
             coordinates)</label>
         </details>
 
+        <p id="wake-msg" class="hint" role="status" aria-live="polite" hidden></p>
         <p id="form-error" class="error" role="alert" hidden></p>
         <button id="go" type="submit">Analyse</button>
       </form>
@@ -70,8 +71,12 @@
     <div class="content">
       <section id="intro" class="intro">
         <h2>Choose a place, then press Analyse</h2>
-        <p>Click the map or type coordinates. A new place can take 1-2 minutes the first time; places already analysed
+        <p id="intro-live">Click the map or type coordinates. A new place can take 1-2 minutes the first time; places
+          already analysed
           come back in seconds.</p>
+        <p id="demo-note" class="hint" hidden>This is a demo: it shows saved results for places that were analysed
+          before. Pick one
+          from the list. It cannot analyse new places.</p>
         <p class="hint">The rules choose the plants. An optional local language model can only reword the explanation.
         </p>
       </section>
@@ -87,6 +92,7 @@
     </div>
   </main>
   <script src="/static/vendor/leaflet/leaflet.js"></script>
+  <script src="/static/config.js"></script>
   <script src="/static/app.js"></script>
 </body>
 

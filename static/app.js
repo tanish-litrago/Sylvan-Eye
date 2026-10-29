@@ -10,6 +10,9 @@ var SITES = [
   { name: "Green farmland (checked on map)", lat: 22.002166, lon: 82.195423 }
 ];
 
+// Where the backend lives (static/config.js). Empty: the same server that sent this page.
+var API = window.SYLVAN_API_BASE || "";
+
 var POLL_MS = 2000;       // how often to ask the server for the job status
 var SLOW_HINT_AFTER_S = 8;
 var MAX_FAILED_POLLS = 3; // consecutive network failures before giving up
@@ -69,6 +72,9 @@ var TILE_CREDIT = '&copy; <a href="https://www.openstreetmap.org/copyright">Open
 var DEFAULT_RADIUS_M = 400;
 var MapUI = { map: null, marker: null, circle: null };
 
+// What the server said it is (GET /config). In demo mode it shows only saved places: no typed coordinates, no map clicks.
+var SERVER = { demo: false };
+
 function round6(x) { return Math.round(x * 1e6) / 1e6; }   // about 0.1 m
 
 function mapRadius() {
@@ -105,7 +111,7 @@ function drawPoint(lat, lon, fromMap) {
       fillColor: "#a8db49", fillOpacity: 0.25, interactive: false
     }).addTo(map);
     MapUI.marker = L.marker(at, {
-      draggable: true, keyboard: false, title: "Selected point (drag to move)",
+      draggable: !SERVER.demo, keyboard: false, title: SERVER.demo ? "Selected place" : "Selected point (drag to move)",
       icon: L.divIcon({ className: "pin", iconSize: [44, 44], iconAnchor: [22, 22] })
     }).addTo(map);
     MapUI.marker.on("drag", function () { MapUI.circle.setLatLng(MapUI.marker.getLatLng()); });
@@ -179,6 +185,7 @@ $("analyze-form").addEventListener("submit", function (event) {
   showFormError("");
 
   var demo = $("demo").checked;
+  if (SERVER.demo && !demo && $("site").value === "") { return showFormError("Choose a place from the list."); }
   var lat = toNumber($("lat").value);
   var lon = toNumber($("lon").value);
   var radius = toNumber($("radius").value);
@@ -189,13 +196,15 @@ $("analyze-form").addEventListener("submit", function (event) {
   }
   if (radius === null || radius <= 0) { return showFormError("Radius must be a number above 0."); }
 
-  startRun({
+  var body = {
     lat: lat === null ? 0 : lat,      // the server still needs numbers in demo mode
     lon: lon === null ? 0 : lon,
     radius_m: radius,
     refresh: $("refresh").checked,
     demo: demo
-  });
+  };
+  if (SERVER.demo && !demo) { body.place = SITES[Number($("site").value)].slug; }
+  startRun(body);
 });
 
 function startRun(body) {
@@ -210,13 +219,17 @@ function startRun(body) {
   $("status-box").hidden = false;
   setStatus("Sending request...", 0);
 
-  fetch("/analyze", {
+  fetch(API + "/analyze", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body)
   })
     .then(function (r) {
-      if (r.status === 422) { throw new Error("The server rejected those values (check the coordinates and radius)."); }
+      if (r.status === 422) {
+        return r.json().then(function (d) {
+          throw new Error(typeof d.detail === "string" ? d.detail : "The server rejected those values (check the coordinates and radius).");
+        });
+      }
       if (r.status === 503) { throw new Error(MSG_STORE_DOWN); }
       if (!r.ok) { throw new Error("The server answered " + r.status + "."); }
       return r.json();
@@ -230,7 +243,7 @@ function startRun(body) {
 function poll(jobId, run, startedAt, failedInARow) {
   if (run !== currentRun) { return; }          // the user started a newer run
 
-  fetch("/jobs/" + jobId)
+  fetch(API + "/jobs/" + jobId)
     .then(function (r) {
       if (!r.ok) { throw pollError(r); }
       return r.json();
@@ -572,7 +585,7 @@ function startLlm(model, btn, status, out) {
   out.textContent = "";
   status.textContent = "Starting...";
 
-  fetch("/jobs/" + LLM.analysisId + "/explain", {
+  fetch(API + "/jobs/" + LLM.analysisId + "/explain", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ model: model })
@@ -590,7 +603,7 @@ function startLlm(model, btn, status, out) {
 
 function pollLlm(jobId, run, startedAt, failedInARow, btn, status, out) {
   if (run !== currentRun) { return; }
-  fetch("/jobs/" + jobId)
+  fetch(API + "/jobs/" + jobId)
     .then(function (r) {
       if (!r.ok) { throw pollError(r); }
       return r.json();
@@ -655,11 +668,67 @@ function finish(run, job, seconds) {
   if ($("results").scrollIntoView) { $("results").scrollIntoView({ block: "start" }); }
 }
 
+// ---------------------------------------------------------------- start-up
+// Ask the server how it runs. A free host sleeps when idle and can take about a minute to wake, so the page
+// says so and keeps trying instead of showing an error.
+var WAKE_MAX_S = 180;
+
+function applyConfig(cfg) {
+  if (cfg.mode !== "demo") { return; }
+  SERVER.demo = true;
+  SITES = cfg.places;
+  $("site").textContent = "";
+  fillSiteMenu();
+  ["paste-field", "coord-row", "advanced", "intro-live"].forEach(function (id) { $(id).hidden = true; });
+  $("demo-note").hidden = false;
+  document.querySelector('label[for="site"]').textContent = "Saved place";
+  $("map-hint").textContent = "Pick a place from the list. The map shows where it is.";
+  if (MapUI.map) { MapUI.map.off("click"); }
+}
+
+function loadModels() {
+  // The optional LLM controls only appear if the server answers with a model list.
+  fetch(API + "/llm/models")
+    .then(function (r) { return r.json(); })
+    .then(function (d) { LLM.models = d.models; LLM.defaultModel = d.default; })
+    .catch(function () { LLM.models = []; });
+}
+
+function loadConfig(startedAt) {
+  var wake = $("wake-msg");
+  var showWait = function () {
+    var waited = Math.round((Date.now() - startedAt) / 1000);
+    wake.hidden = false;
+    wake.textContent = "Waking the server (free hosting sleeps when idle). This can take about a minute. " + waited + " s so far...";
+  };
+  var timer = setTimeout(showWait, 2500);     // a sleeping host holds the request, it does not fail at once
+  fetch(API + "/config")
+    .then(function (r) {
+      if (r.status === 404) { return { mode: "live" }; }        // an older server without /config
+      if (!r.ok) { throw new Error("status " + r.status); }
+      return r.json();
+    })
+    .then(function (cfg) {
+      clearTimeout(timer);
+      wake.hidden = true;
+      $("go").disabled = false;
+      applyConfig(cfg);
+      loadModels();
+    })
+    .catch(function () {
+      clearTimeout(timer);
+      if ((Date.now() - startedAt) / 1000 > WAKE_MAX_S) {
+        wake.hidden = false;
+        wake.textContent = "The server did not answer. Reload the page to try again.";
+        $("go").disabled = false;
+        return;
+      }
+      $("go").disabled = true;
+      showWait();
+      setTimeout(function () { loadConfig(startedAt); }, 3000);
+    });
+}
+
 fillSiteMenu();
 initMap();
-
-// The optional LLM controls only appear if the server answers with a model list.
-fetch("/llm/models")
-  .then(function (r) { return r.json(); })
-  .then(function (d) { LLM.models = d.models; LLM.defaultModel = d.default; })
-  .catch(function () { LLM.models = []; });
+loadConfig(Date.now());

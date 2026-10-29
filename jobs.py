@@ -51,7 +51,7 @@ _LLM_LOCK = threading.Lock()   # one language-model call at a time (a local mode
 # ---------------------------------------------------------------------------
 def start_job(params):
     """
-    params: {"lat", "lon", "radius_m", "refresh", "demo"}. Starts the work in a background
+    params: {"lat", "lon", "radius_m", "refresh", "demo", optional "fixture"}. Starts the work in a background
     thread and returns the job id immediately. Raises JobStoreError if the record cannot be saved.
     """
     job_id = uuid.uuid4().hex
@@ -226,7 +226,16 @@ def _work(job_id):
 
 def _analyze(p):
     lat, lon, radius = p["lat"], p["lon"], p["radius_m"]
-    if p["demo"]:
+    if p.get("fixture"):
+        # Demo-only server: a saved place, no satellite or weather calls (set by app.py, never by the client).
+        from scripts.fixtures import load_fixture
+
+        loaded = load_fixture(p["fixture"])
+        if loaded is None:
+            raise RuntimeError(f"saved place '{p['fixture']}' is missing on this server")
+        _, env, terrain = loaded
+        cache = []
+    elif p["demo"]:
         env, terrain, cache = dict(DEMO_ENV), None, []
     else:
         # Clear the shared log ourselves first: run_live imports heavy modules before it

@@ -1,0 +1,16 @@
+# Render blueprint: the backend as a demo-only server on the free plan.
+# It shows saved places only (no Earth Engine, no Open-Meteo, no language model).
+# Free services sleep after 15 minutes without traffic and wake in about a minute.
+services:
+  - type: web
+    name: sylvan-eye-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./docker/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: SYLVAN_MODE
+        value: demo
+      - key: SYLVAN_CORS_ORIGINS
+        sync: false          # you type your Vercel address here in the Render dashboard

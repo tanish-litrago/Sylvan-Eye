@@ -1,10 +1,12 @@
 # Sylvan Eye
 
+![tests](https://github.com/tanish-litrago/Sylvan-Eye/actions/workflows/tests.yml/badge.svg)
+
 Give it a location, and it tells you which trees could be planted there, why, and what the data cannot tell you.
 
 **Rules decide; the language model only explains, and it is off by default.** Every verdict comes from fixed rules over measured data and a sourced plant table. An optional local language model can rewrite the explanation in prose, but its text is checked claim by claim against the facts and discarded if it fails.
 
-> **Status:** v2.1.1 is a working, documented prototype. It is **not** validated for real planting decisions. Always confirm with a local soil test and local forestry advice. See [Known limits](#known-limits).
+> **Status:** v2.2.0 is a working, documented prototype. It is **not** validated for real planting decisions. Always confirm with a local soil test and local forestry advice. See [Known limits](#known-limits).
 
 **What it honestly gets wrong:** the rainfall source reads Leh about 9.6 times too high and Cherrapunji at 0.44 of the published figure, because a weather grid smooths mountain places. The gate misses houses hidden under trees (Shimla) and cannot yet tell cropland from seasonal grassland.
 
@@ -85,6 +87,19 @@ python -m phases.phase5_explainer --demo           # with the explanation text
 python -m phases.phase5_explainer LAT LON --llm    # explanation rewritten by the local model
 ```
 
+## Deploy a free demo (Vercel and Render)
+
+The demo shows the saved results for the places in `data/fixtures`. It makes no Earth Engine or weather calls and needs no login, key or password, so there is nothing secret to put on a public host. Visitors pick a place from a list; typed coordinates and map clicks are off. Never add Earth Engine credentials to the Render service.
+
+Try it on your machine first (PowerShell): `$env:SYLVAN_MODE = "demo"; python -m uvicorn app:app`, then open `http://127.0.0.1:8000`.
+
+1. **Render (the backend).** In Render choose New, then Blueprint, pick this repository, and let it read `render.yaml`. It builds `docker/Dockerfile` on the free plan with `SYLVAN_MODE=demo`. When it asks for `SYLVAN_CORS_ORIGINS`, type any placeholder for now. Note the service address, for example `https://sylvan-eye-api.onrender.com`.
+2. **Vercel (the page).** Import the same repository. Vercel reads `vercel.json`, which runs `scripts/vercel_build.sh` and serves the `public/` folder it builds. Add the environment variable `SYLVAN_API_BASE` with the Render address (no slash at the end). Deploy and note the page address, for example `https://sylvan-eye.vercel.app`.
+3. **Back in Render.** Set `SYLVAN_CORS_ORIGINS` to the exact Vercel page address (no slash at the end; several addresses go in one comma-separated list) and let the service restart. Vercel preview deployments have other addresses and need their own entry.
+4. Open the Vercel address. The first visit after a quiet period shows "Waking the server" for about a minute, because the free Render service sleeps after 15 minutes without traffic.
+
+A single Render service also works without Vercel: it serves the page and the API from one address, and you can skip steps 2 and 3. The Vercel page loads faster, but the first analysis still waits for the sleeping backend. Check each service's current free-plan terms before you rely on them. The map tiles come from OpenStreetMap, which allows light use only.
+
 ## Optional: the local language model
 
 Install Ollama, run `ollama pull gemma4:e4b`, and keep it running. The page then shows a **Rewrite with local LLM** button. Only `gemma4:e4b` is supported: `qwen2.5:7b-instruct` was rejected by the claim guard. If the model's answer fails the checks you get the fixed-rules text again, with the reasons. A blocked location never uses the model. On the 32 saved places that reach the model, one run of `python -m scripts.guard_stats` showed the guard accepting 29 answers on the first try and 1 after the retry; 2 fell back to the fixed text.
@@ -94,6 +109,8 @@ Install Ollama, run `ollama pull gemma4:e4b`, and keep it running. The page then
 | Variable | Meaning | Default |
 |---|---|---|
 | `SYLVAN_EE_PROJECT` | Your Google Cloud project registered for Earth Engine | `sylvan-eye` (the author's; set your own) |
+| `SYLVAN_MODE` | `demo` makes the server show only the saved places (no Earth Engine, no weather calls, no language model) | `live` |
+| `SYLVAN_CORS_ORIGINS` | Comma-separated addresses of a page hosted elsewhere that may call this server, for example `https://my-site.vercel.app` | empty (same server only) |
 | `SYLVAN_LLM` | `off` hides the language-model control and refuses rewrite requests (for a host without Ollama) | on |
 | `SYLVAN_STORE` | `sqlite` or `postgres` (cache backend) | `sqlite` |
 | `SYLVAN_SQLITE_PATH` | SQLite cache file | `sylvan_cache.db` in the project folder |
@@ -155,6 +172,7 @@ Accuracy was judged by me on 35 saved places, not by an outside expert, which is
 
 ## Known limits
 
+- The hosted demo shows saved results only; it cannot analyse a new place.
 - Points outside a coarse rectangle around India are refused (Berlin, the Pacific). The rectangle is not a border, so places in neighbouring countries inside it, such as Kathmandu, still run.
 - The built-up warning relies on satellite land cover. At Kochi it read 37% as built, just under the 40% line, and at Darjeeling it read the town as 61% water and blocked the place for that reason. Barren natural land also gets the bare-or-built-up warning. Since v2.1.0 the outline warning covers Kochi (43.8% outlines); Darjeeling is still blocked, now with a note that the water reading may be shade or roofs.
 - The building-outline share feeds one thing: a warning at 18.5% or more (it never blocks, and it is skipped when the land-cover warning already fired). Plant matching does not use it. The line sits between the largest village (16.5%, Kakdwip) and the lowest peri-urban edge (20.5%, Pirangut) on 35 saved places, so it rests on few places. Houses under trees stay below it (Shimla, 5.6%). The outlines are a May 2023 snapshot, so newer buildings are missing, and some small crowded roofs have no outline, so the share is a floor. If no outline exists within 5 km of the point, the result says there is no footprint data instead of 0%.

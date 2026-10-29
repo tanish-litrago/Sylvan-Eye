@@ -33,6 +33,15 @@ def fixture_path(slug, folder=None):
     return Path(folder or FIXTURE_DIR) / f"{slug}.json"
 
 
+def list_fixtures(folder=None):
+    """Every saved place as {slug, name, lat, lon, radius_m}, sorted by name (for the demo-only server)."""
+    places = []
+    for path in sorted(Path(folder or FIXTURE_DIR).glob("*.json")):
+        site = json.loads(path.read_text(encoding="utf-8"))["site"]
+        places.append({k: site[k] for k in ("slug", "name", "lat", "lon", "radius_m")})
+    return sorted(places, key=lambda p: p["name"].lower())
+
+
 def save_fixture(site, env, terrain, exported_on, folder=None):
     """Write one site's measurements. Returns the path."""
     path = fixture_path(site["slug"], folder)

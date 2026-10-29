@@ -20,6 +20,7 @@ import os
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -28,6 +29,7 @@ import jobs
 from jobstore import JobStoreError
 from phases.phase4_matcher import DEFAULT_RADIUS, PLANTS_CSV
 from phases.phase5_explainer import OLLAMA_MODEL
+from scripts.fixtures import list_fixtures
 
 # Paths are built from this file's location, not from the folder you launch the server in,
 # so the app finds its page no matter where you start it from.
@@ -39,7 +41,17 @@ def llm_models_for(setting):
     return [] if str(setting or "").strip().lower() == "off" else [OLLAMA_MODEL]
 
 
-LLM_MODELS = llm_models_for(os.environ.get("SYLVAN_LLM"))   # qwen2.5:7b-instruct was dropped (user decision, 2026-10-10): see HANDOFF section 8
+# SYLVAN_MODE=demo: the server shows only the saved places (no Earth Engine, no Open-Meteo, no language model),
+# which is the safe way to put it on a public host. Default: live.
+DEMO = os.environ.get("SYLVAN_MODE", "live").strip().lower() == "demo"
+
+
+def cors_origins(setting):
+    """SYLVAN_CORS_ORIGINS="https://a.vercel.app,https://b.example" -> a list; empty means same-origin only."""
+    return [o.strip().rstrip("/") for o in (setting or "").split(",") if o.strip()]
+
+
+LLM_MODELS = [] if DEMO else llm_models_for(os.environ.get("SYLVAN_LLM"))   # qwen2.5:7b-instruct was dropped (user decision, 2026-10-10): see HANDOFF section 8
 MAX_RADIUS_M = 5000   # a sanity ceiling I chose, not a rule from the data: change it if you need to
 
 # The plant table (data/plants.csv) and the SQLite cache file (sylvan_cache.db, next to this file)
@@ -50,6 +62,10 @@ if not Path(PLANTS_CSV).exists():
     raise SystemExit(f"Plant table not found at {PLANTS_CSV}: check the folder layout (data/plants.csv).")
 
 app = FastAPI(title="Sylvan Eye")
+
+if cors_origins(os.environ.get("SYLVAN_CORS_ORIGINS")):   # only for a page hosted elsewhere (for example Vercel)
+    app.add_middleware(CORSMiddleware, allow_origins=cors_origins(os.environ.get("SYLVAN_CORS_ORIGINS")),
+                       allow_methods=["GET", "POST"], allow_headers=["Content-Type"])
 
 
 @app.exception_handler(JobStoreError)
@@ -76,6 +92,7 @@ class AnalyzeRequest(BaseModel):
     radius_m: float = Field(default=DEFAULT_RADIUS, gt=0, le=MAX_RADIUS_M)
     refresh: bool = False   # recompute the measurements instead of using the cache
     demo: bool = False      # skip the satellite step and use the offline Bilaspur values
+    place: str | None = None   # demo-only server: the slug of the saved place to show
 
 
 @app.get("/health")
@@ -87,11 +104,28 @@ def health():
 @app.post("/analyze", status_code=202)
 def analyze(req: AnalyzeRequest):
     """Start a job and return its id. 202 means: accepted, not finished."""
-    if not inside_india(req.lat, req.lon):
+    params = req.model_dump()
+    params.pop("place")
+    if req.demo:
+        pass     # the offline demo values ignore the coordinates, so they are not checked
+    elif DEMO:
+        places = {p["slug"]: p for p in list_fixtures()}
+        if req.place not in places:
+            raise HTTPException(status_code=422, detail="This server only shows saved places. Pick one from the list.")
+        chosen = places[req.place]
+        params.update(lat=chosen["lat"], lon=chosen["lon"], radius_m=chosen["radius_m"], refresh=False,
+                      fixture=req.place)
+    elif not inside_india(req.lat, req.lon):
         raise HTTPException(status_code=422, detail=(
             "This point is outside India. Sylvan Eye works for India only: its plant table, "
             "soil and rainfall checks were built and tested on Indian places."))
-    return {"job_id": jobs.start_job(req.model_dump())}
+    return {"job_id": jobs.start_job(params)}
+
+
+@app.get("/config")
+def config():
+    """What the page needs to know before it draws the form: the mode, and in demo mode the saved places."""
+    return {"mode": "demo" if DEMO else "live", "places": list_fixtures() if DEMO else []}
 
 
 @app.get("/jobs/{job_id}")

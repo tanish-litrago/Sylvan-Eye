@@ -1,5 +1,36 @@
 # Changelog
 
+## v2.2.0 - 2026-10-28
+
+A free, safe public demo: the server can show only the saved places, and the page can live on Vercel while the server lives on Render. Nothing changes for local runs and Docker unless you set the new settings.
+
+### Added
+
+- `SYLVAN_MODE=demo`: `POST /analyze` accepts a saved place by its `place` slug and answers it from `data/fixtures` (no Earth Engine, no weather calls, no language model); anything else gets 422 "This server only shows saved places". `GET /config` tells the page the mode and lists the places (`scripts/fixtures.py: list_fixtures`).
+- `SYLVAN_CORS_ORIGINS`: lets a page hosted elsewhere call the server. Only the listed addresses get CORS headers; with nothing set there is no CORS at all.
+- Page: `static/config.js` holds the backend address (empty means the same server); in demo mode the page shows a "Saved place" list and hides the coordinate boxes, paste box, advanced options and map clicks; if the server is asleep it says "Waking the server" and keeps trying for up to 3 minutes; it now shows the server's own sentence for a rejected request.
+- `scripts/vercel_build.sh` and `vercel.json` (the page on Vercel, backend address from `SYLVAN_API_BASE`, refused if missing or unsafe) and `render.yaml` (the backend on Render's free plan in demo mode).
+- Dockerfile: the app listens on `$PORT` when a host sets it, 8000 otherwise; the health check follows the same port.
+- Tests: `tests/test_demo_mode.py` (demo server, the fixture path, CORS), `tests/test_vercel_build.py` (skipped where there is no `sh`), and one in `tests/test_app.py`.
+- README: a "Deploy a free demo" section and two settings rows.
+
+### Fixed
+
+- v2.1.1 refused the offline demo ("Offline demo values" ticked with empty coordinates) as "outside India", because the page then sends 0, 0. The offline demo ignores coordinates, so they are no longer checked for it. The India refusal still applies to every real analysis.
+
+### Findings
+
+- In the sandbox, the demo server used about 54 MB of memory after three analyses, well under Render's 512 MB free limit. This is a measurement on Claude's Linux sandbox, not on Render.
+
+### Not changed
+
+- The gate, the plant matching, the claim guard and the live analysis path. `SYLVAN_LLM` still works; demo mode switches the language model off by itself.
+
+### Tested
+
+- `python -m tests`: unit tests, a real server run in demo mode with CORS headers checked by `curl`, and the page logic exercised in a simulated browser page (jsdom) against mocked server answers (live, demo, older server, sleeping server, address prefix, rejected request). Claude's sandbox only.
+- Not tested by Claude: a real browser, the real Vercel build, the real Render deploy, and the free-plan wake-up time. Run `python -m tests` and the demo on your machine.
+
 ## v2.1.1 - 2026-10-27
 
 Small hardening after an outside review of the project (a simulated screening panel). No change to the gate, the plant matching or the claim guard.
