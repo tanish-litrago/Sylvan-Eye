@@ -1,10 +1,13 @@
 # Sylvan Eye
 
-![tests](https://github.com/tanish-litrago/Sylvan-Eye/actions/workflows/tests.yml/badge.svg)
+[![tests](https://github.com/tanish-litrago/Sylvan-Eye/actions/workflows/tests.yml/badge.svg)](https://github.com/tanish-litrago/Sylvan-Eye/actions/workflows/tests.yml)
+![License](https://img.shields.io/badge/license-Apache%202.0-blue)
+![Python](https://img.shields.io/badge/python-3.11%2B-blue)
+[![Live demo](https://img.shields.io/badge/live%20demo-Vercel-black)](https://sylvan-eye-requirements-sable.vercel.app)
 
 **Live demo:** https://sylvan-eye-requirements-sable.vercel.app (saved results for 35 places; the first visit can take about a minute while the free server wakes up).
 
-![Sylvan Eye demo](docs/demo.gif)
+![Sylvan Eye demo](docs/sylvan-eye-demo.gif)
 
 Give it a location, and it tells you which trees could be planted there, why, and what the data cannot tell you.
 
